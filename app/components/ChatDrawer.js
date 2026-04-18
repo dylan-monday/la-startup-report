@@ -209,7 +209,8 @@ export default function ChatDrawer() {
         </div>
 
         <div className="drawer-content">
-          {startersVisible && (
+          {/* Initial starters — shown before any messages */}
+          {!hasMessages && startersVisible && (
             <div className="starter-questions">
               {STARTER_QUESTIONS.map((q, i) => (
                 <button
@@ -242,6 +243,22 @@ export default function ChatDrawer() {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Mid-conversation suggestions shelf — sits above input */}
+          {hasMessages && startersVisible && (
+            <div className="suggestions-shelf">
+              {STARTER_QUESTIONS.map((q, i) => (
+                <button
+                  key={i}
+                  className="suggestion-chip"
+                  onClick={() => { sendMessage(q); setStartersVisible(false); }}
+                  disabled={loading}
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="input-area">
             <input
               ref={inputRef}
@@ -257,14 +274,9 @@ export default function ChatDrawer() {
               <button
                 className={`starters-toggle-btn ${startersVisible ? "starters-toggle-btn--active" : ""}`}
                 onClick={() => setStartersVisible(v => !v)}
-                title={startersVisible ? "Hide suggestions" : "Show suggested questions"}
-                aria-label={startersVisible ? "Hide suggestions" : "Show suggested questions"}
+                title={startersVisible ? "Hide suggestions" : "Suggested questions"}
               >
-                <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-                  <circle cx="7.5" cy="7.5" r="6.5" stroke="currentColor" strokeWidth="1.2"/>
-                  <path d="M5.5 6C5.5 4.9 6.3 4 7.5 4C8.7 4 9.5 4.8 9.5 5.8C9.5 6.7 9 7.2 8.1 7.7C7.7 7.9 7.5 8.2 7.5 8.7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                  <circle cx="7.5" cy="11" r="0.7" fill="currentColor"/>
-                </svg>
+                Suggest
               </button>
             )}
             <button
