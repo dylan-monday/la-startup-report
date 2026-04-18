@@ -352,34 +352,35 @@ export default function ChatDrawer({ onRequestData }) {
           )}
 
           <div className="input-area">
-            <input
-              ref={inputRef}
-              className="chat-input"
-              type="text"
-              placeholder="Ask about the startup ecosystem..."
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={loading}
-            />
-            {hasMessages && (
-              <button
-                className={`starters-toggle-btn ${startersVisible ? "starters-toggle-btn--active" : ""}`}
-                onClick={() => setStartersVisible(v => !v)}
-                title={startersVisible ? "Hide suggestions" : "Suggested questions"}
-              >
-                Suggest
-              </button>
-            )}
+            <div className="chat-input-wrap">
+              <input
+                ref={inputRef}
+                className={`chat-input ${hasMessages ? "chat-input--has-suggest" : ""}`}
+                type="text"
+                placeholder="Ask about the startup ecosystem..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+              />
+              {hasMessages && (
+                <button
+                  className={`starters-toggle-btn ${startersVisible ? "starters-toggle-btn--active" : ""}`}
+                  onClick={() => setStartersVisible(v => \!v)}
+                  title={startersVisible ? "Hide suggestions" : "Suggested questions"}
+                >
+                  Suggest
+                </button>
+              )}
+            </div>
             <button
               className="chat-send"
               onClick={() => sendMessage(input)}
-              disabled={loading || !input.trim()}
+              disabled={loading || \!input.trim()}
             >
               {loading ? "Thinking..." : "Send"}
             </button>
           </div>
-
           <div className="chat-footer">
             <span className="chat-footer-text">
               Tulane Lepage Center + LA.io · Monday + Partners
