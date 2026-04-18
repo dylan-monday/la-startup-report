@@ -85,8 +85,24 @@ export default function ReportPage() {
           <p className="hero-lead">
             An annual report on startup formation, venture funding, and
             entrepreneurial growth across Louisiana. A collaboration between
-            Tulane University and LA.io.
+            Tulane University and LA.IO, in partnership with Louisiana Economic Development.
           </p>
+          <div className="hero-partner-logos">
+            <img
+              src="/images/tulane.png"
+              alt="Tulane University Freeman School of Business"
+              className="hero-logo-tulane"
+            />
+            <div className="hero-logo-divider" />
+            <div className="hero-logo-laio">
+              <div className="hero-logo-laio-mark">
+                <span className="hero-logo-laio-bracket">&lt;</span>
+                <span className="hero-logo-laio-name">LA.IO</span>
+                <span className="hero-logo-laio-bracket">&gt;</span>
+              </div>
+              <div className="hero-logo-laio-sub">LOUISIANA INNOVATION</div>
+            </div>
+          </div>
           <div className="hero-cta">
             <button className="btn-primary" onClick={handleAskData}>
               Ask the data

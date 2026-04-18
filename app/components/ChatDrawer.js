@@ -428,7 +428,7 @@ export default function ChatDrawer({ onRequestData }) {
 
           <div className="chat-footer">
             <span className="chat-footer-text">
-              Tulane Lepage Center + LA.io · Monday + Partners
+              TULANE LEPAGE CENTER + LA.IO · MONDAY + PARTNERS
             </span>
           </div>
         </div>
