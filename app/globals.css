@@ -594,13 +594,13 @@ body {
   border-radius: var(--msg-radius);
   font-size: var(--msg-font-size);
   line-height: var(--msg-line-height);
-  white-space: pre-wrap;
 }
 
 .msg-user {
   align-self: flex-end;
   background: var(--msg-user-bg);
   color: var(--msg-user-color);
+  white-space: pre-wrap;
 }
 
 .msg-assistant {
@@ -608,6 +608,69 @@ body {
   background: var(--msg-assistant-bg);
   color: var(--msg-assistant-color);
   border: 1px solid var(--msg-assistant-border);
+  position: relative;
+}
+
+/* Copy button — top-right of assistant messages */
+.msg-copy-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 4px 6px;
+  cursor: pointer;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  line-height: 1;
+}
+
+.msg-assistant:hover .msg-copy-btn {
+  opacity: 1;
+}
+
+.msg-copy-btn:hover {
+  color: var(--accent);
+  border-color: var(--border);
+  background: var(--card-bg-solid);
+}
+
+.msg-copy-btn--copied {
+  color: #48854c;
+  opacity: 1 !important;
+  border-color: var(--border);
+  background: var(--card-bg-solid);
+}
+
+/* Starters toggle button — sits between input and send */
+.starters-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 12px;
+  cursor: pointer;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 100%;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.starters-toggle-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-bright);
+}
+
+.starters-toggle-btn--active {
+  color: var(--accent);
+  border-color: var(--accent-bright);
 }
 
 .msg-assistant strong {

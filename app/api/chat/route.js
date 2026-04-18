@@ -15,7 +15,7 @@ export async function POST(req) {
 
   // Run the agentic loop: Claude may call tools multiple times
   let currentMessages = [...anthropicMessages];
-  const MAX_ITERATIONS = 5;
+  const MAX_ITERATIONS = 10;
 
   for (let i = 0; i < MAX_ITERATIONS; i++) {
     const response = await anthropic.messages.create({
