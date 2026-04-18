@@ -210,6 +210,51 @@ body {
   background: var(--accent);
 }
 
+.btn-secondary {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  background: transparent;
+  padding: 14px 28px;
+  border-radius: 4px;
+  border: 1px solid rgba(3, 36, 60, 0.18);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  color: var(--dark);
+  border-color: rgba(3, 36, 60, 0.4);
+}
+
+/* Sticky nav right-side actions */
+.sticky-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sticky-data-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(200, 220, 232, 0.45);
+  background: none;
+  border: none;
+  padding: 7px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.sticky-data-btn:hover {
+  color: rgba(200, 220, 232, 0.8);
+}
+
 /* Report section */
 .report-section {
   padding: 120px 60px;
@@ -305,13 +350,11 @@ body {
 }
 
 .sticky-header-inner {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 40px;
+  padding: 0 60px;
   height: 52px;
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 0;
 }
 
 .sticky-logo {
@@ -339,6 +382,7 @@ body {
 .sticky-nav {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   flex: 1;
 }
@@ -1324,5 +1368,323 @@ body {
 
   .chart-control-group {
     flex-wrap: wrap;
+  }
+}
+
+/* ============================================
+   GENERIC MODAL OVERLAY (shared)
+   ============================================ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 36, 60, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+}
+
+/* ============================================
+   DATA REQUEST MODAL
+   ============================================ */
+.data-request-modal {
+  background: #fff;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 640px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.drm-header {
+  padding: 32px 36px 24px;
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.drm-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+
+.drm-title {
+  font-family: 'Aktiv Grotesk', sans-serif;
+  font-size: 22px;
+  font-weight: 300;
+  color: var(--dark);
+  margin: 0 0 8px;
+  line-height: 1.2;
+}
+
+.drm-subtitle {
+  font-size: 13px;
+  color: var(--text-mid);
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 300;
+}
+
+.drm-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  font-size: 16px;
+  padding: 4px;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+  line-height: 1;
+}
+
+.drm-close:hover {
+  color: var(--dark);
+}
+
+.drm-form {
+  padding: 28px 36px 32px;
+}
+
+.drm-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.drm-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.drm-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.drm-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+
+.drm-required {
+  color: var(--accent);
+  margin-left: 3px;
+}
+
+.drm-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: 'Aktiv Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+  color: var(--dark);
+  outline: none;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.drm-input:focus {
+  border-color: var(--accent-bright);
+}
+
+.drm-input--error {
+  border-color: #c0392b;
+}
+
+.drm-textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.6;
+}
+
+.drm-field-error {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #c0392b;
+  letter-spacing: 0.3px;
+}
+
+.drm-error-msg {
+  font-size: 13px;
+  color: #c0392b;
+  margin-bottom: 16px;
+}
+
+.drm-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.drm-fine-print {
+  font-size: 11px;
+  color: var(--text-light);
+  line-height: 1.5;
+  margin: 0;
+  flex: 1;
+}
+
+.drm-submit-btn {
+  background: var(--dark);
+  color: #c8dce8;
+  border: none;
+  border-radius: 6px;
+  padding: 11px 24px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.drm-submit-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
+.drm-submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Success state */
+.drm-success {
+  padding: 48px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.drm-success-icon {
+  color: #48854c;
+  margin-bottom: 4px;
+}
+
+.drm-success-title {
+  font-family: 'Aktiv Grotesk', sans-serif;
+  font-size: 20px;
+  font-weight: 300;
+  color: var(--dark);
+  margin: 0;
+}
+
+.drm-success-body {
+  font-size: 14px;
+  color: var(--text-mid);
+  margin: 0 0 12px;
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* ============================================
+   DATA ACCESS NUDGE (in chat drawer)
+   ============================================ */
+.data-nudge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(74, 116, 168, 0.07);
+  border: 1px solid rgba(74, 116, 168, 0.2);
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.data-nudge-text {
+  font-size: 12px;
+  color: var(--text-mid);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.data-nudge-text strong {
+  color: var(--dark);
+  font-weight: 600;
+}
+
+.data-nudge-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.data-nudge-cta {
+  background: var(--dark);
+  color: #c8dce8;
+  border: none;
+  border-radius: 5px;
+  padding: 7px 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  white-space: nowrap;
+}
+
+.data-nudge-cta:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.data-nudge-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 13px;
+  padding: 4px 6px;
+  transition: color 0.15s ease;
+  line-height: 1;
+}
+
+.data-nudge-dismiss:hover {
+  color: var(--dark);
+}
+
+@media (max-width: 700px) {
+  .drm-header {
+    padding: 24px 20px 20px;
+  }
+
+  .drm-form {
+    padding: 20px 20px 24px;
+  }
+
+  .drm-row {
+    grid-template-columns: 1fr;
+  }
+
+  .data-nudge {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

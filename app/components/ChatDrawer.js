@@ -119,12 +119,16 @@ function AssistantMessage({ content }) {
 // ============================================================
 // Main drawer component
 // ============================================================
-export default function ChatDrawer() {
+const DATA_REQUEST_NUDGE_AFTER = 8; // user queries before showing nudge
+
+export default function ChatDrawer({ onRequestData }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [startersVisible, setStartersVisible] = useState(true);
+  const [queryCount, setQueryCount] = useState(0);
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const drawerRef = useRef(null);
@@ -158,6 +162,7 @@ export default function ChatDrawer() {
     setInput("");
     setLoading(true);
     setStartersVisible(false);
+    setQueryCount(c => c + 1);
 
     try {
       const res = await fetch("/api/chat", {
@@ -242,6 +247,30 @@ export default function ChatDrawer() {
             )}
             <div ref={messagesEndRef} />
           </div>
+
+          {/* Data access nudge — appears after heavy use */}
+          {!nudgeDismissed && queryCount >= DATA_REQUEST_NUDGE_AFTER && onRequestData && (
+            <div className="data-nudge">
+              <div className="data-nudge-text">
+                <strong>Need deeper access?</strong> Request the raw dataset directly from Tulane for your own analysis.
+              </div>
+              <div className="data-nudge-actions">
+                <button
+                  className="data-nudge-cta"
+                  onClick={() => { onRequestData(); setNudgeDismissed(true); }}
+                >
+                  Request access
+                </button>
+                <button
+                  className="data-nudge-dismiss"
+                  onClick={() => setNudgeDismissed(true)}
+                  aria-label="Dismiss"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Mid-conversation suggestions shelf — sits above input */}
           {hasMessages && startersVisible && (
