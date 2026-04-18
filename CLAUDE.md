@@ -188,7 +188,7 @@ The 2026 report covers 8 regions with potentially 800+ respondents. The dataset 
 - Starter questions shown before first message. Reopenable via "Suggest" button inside the input after conversation starts.
 - After 15 queries: nudge banner appears with link to data request form.
 - After 25 queries: input locked. Data request CTA shown.
-- Copy button on every assistant message copies response + attribution footer to clipboard.
+- Copy button on every assistant message. Uses `ClipboardItem` API to write both `text/plain` and `text/html` simultaneously. Rich-text targets (Word, Gmail, Google Slides) receive formatted output with bold, bullets, and paragraph breaks intact. Plain text targets receive clean text with markdown syntax stripped and `•` bullets substituted. Attribution footer travels with both formats. Falls back to `navigator.clipboard.writeText` if `ClipboardItem` is unavailable.
 - Escape key closes the drawer.
 
 ### Chart output
@@ -197,7 +197,14 @@ When Claude's response includes a fenced `chart-config` block, the UI strips it 
 
 Supported chart types: `bar` (vertical), `hbar` (horizontal), `donut`, `stacked` (stacked bar).
 
-Chart rendering uses the design system from `lib/design-system.js`. Palette is passed in the chart-config. Download button exports PNG at full canvas resolution with attribution footer baked in.
+Chart rendering uses the design system from `lib/design-system.js`. Palette is passed in the chart-config. Two export options in the chart toolbar:
+
+- **Download PNG** — exports full canvas at 1600x900 with attribution footer baked in.
+- **Copy data** — copies chart data as tab-separated values to clipboard, with the source/attribution appended as `#` comment rows. Pastes directly into Excel or Google Sheets. Works for all chart types including stacked (outputs segment columns).
+
+**hbar color behavior:** Even-indexed bars render in `palette.primary`, odd-indexed in `palette.mid`. This creates visual distinction between paired rows (e.g., 2020 vs 2025 brackets) without requiring explicit color overrides in the chart-config. Override per-row by setting `d.color` in the data array.
+
+**Attribution footer:** Rendered in all caps on all exported charts. Format: `TULANE FREEMAN SCHOOL OF BUSINESS · ALBERT LEPAGE CENTER FOR ENTREPRENEURSHIP & INNOVATION · LA.IO` (left) and `LOUISIANA STARTUP REPORT 2026` (right). Monday + Partners is not included in exported chart attribution.
 
 **Known issue resolved:** `renderStacked` would crash if `data` had no `segments` property, leaving the UI stuck on "RENDERING...". Fixed with `validateDataForType()` pre-check and try/catch/finally around the draw callback.
 
@@ -249,7 +256,7 @@ Claude's memory files (in the Cowork session memory directory) capture project s
 
 **Palettes:** indigo (default), blue, teal, green, amber, rose. Each has light and dark variants. The system prompt assigns palettes by data type: indigo=general, blue=funding, teal=operations, green=workforce, amber=regional, rose=demographics.
 
-**Canvas:** All charts render at 1600x900 (16:9). Attribution footer ("Tulane Freeman School of Business · Albert Lepage Center · LA.io") is baked into every export.
+**Canvas:** All charts render at 1600x900 (16:9). Attribution footer is baked into every export. The `ATTRIBUTION` constant in `lib/design-system.js` controls the footer text — both strings are all caps. `ATTRIBUTION.text` is the institution line (left); `ATTRIBUTION.source` is the report name (right). Monday + Partners is intentionally excluded from chart attribution.
 
 **Fonts:** Aktiv Grotesk (display, weight 300) and JetBrains Mono (data labels, axis values). Both loaded via `app/layout.js`.
 
@@ -294,11 +301,11 @@ Vercel environment variables needed:
 
 1. **Update system-prompt.js** to reference newly exposed fields: special_designations, has_exit_strategy, plan_sales_outside_gno, pct_public_sector_revenue, marketing_channels, critical_tech_infrastructure, founder2_* fields, total_age_* fields, margin_* fields, planned_hires_*, external_service_providers.
 
-2. **API cost tracking.** Set up a spending alert on the Anthropic Console (console.anthropic.com → Billing → Notifications). Recommended: alert at $25 and hard limit at $100/month until usage is understood.
+2. **Admin / analytics dashboard.** Build `app/admin/page.js` with a simple password gate and a dashboard showing: total queries, sessions, token usage, estimated API cost, 30-day query trend (SVG sparkline), top questions by frequency, and recent query table. Also needs `app/api/admin/stats/route.js`. Currently the dashboard scaffolding is planned but not yet built — the API route will return mock data structured for future replacement with a real persistence layer (Vercel KV or Upstash Redis). Token usage logging hooks need to be added to `app/api/chat/route.js` once the store is wired up.
 
-3. **Rate limiting.** Before public launch, add per-IP rate limiting on the `/api/chat` route. Next.js middleware or a Vercel Edge Config rule. Without this, a single user or bot can exhaust the monthly API budget.
+3. **API cost tracking.** Set up a spending alert on the Anthropic Console (console.anthropic.com → Billing → Notifications). Recommended: alert at $25 and hard limit at $100/month until usage is understood.
 
-4. **Analytics.** Consider logging query count and approximate token usage per session to understand actual cost per user. Simple: a Vercel log drain into a spreadsheet.
+4. **Rate limiting.** Before public launch, add per-IP rate limiting on the `/api/chat` route. Next.js middleware or a Vercel Edge Config rule. Without this, a single user or bot can exhaust the monthly API budget.
 
 5. **Statewide expansion.** The 2026 report adds 7 new regions. The data layer in `lib/data-tools.js` is designed to be region-agnostic — filters can be applied to any field including a `region` field once the statewide dataset is ready. The system prompt will need a region-awareness section.
 
