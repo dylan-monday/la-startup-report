@@ -215,37 +215,9 @@ body {
 }
 
 .hero-logo-laio {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.hero-logo-laio-mark {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 18px;
-  font-weight: 400;
-  color: var(--dark);
-  line-height: 1;
-}
-
-.hero-logo-laio-bracket {
-  color: var(--accent);
-  font-size: 16px;
-}
-
-.hero-logo-laio-name {
-  letter-spacing: 1px;
-}
-
-.hero-logo-laio-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 8px;
-  letter-spacing: 2px;
-  color: var(--text-mid);
-  padding-left: 1px;
+  height: 36px;
+  width: auto;
+  display: block;
 }
 
 .btn-primary {

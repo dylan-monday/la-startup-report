@@ -94,14 +94,11 @@ export default function ReportPage() {
               className="hero-logo-tulane"
             />
             <div className="hero-logo-divider" />
-            <div className="hero-logo-laio">
-              <div className="hero-logo-laio-mark">
-                <span className="hero-logo-laio-bracket">&lt;</span>
-                <span className="hero-logo-laio-name">LA.IO</span>
-                <span className="hero-logo-laio-bracket">&gt;</span>
-              </div>
-              <div className="hero-logo-laio-sub">LOUISIANA INNOVATION</div>
-            </div>
+            <img
+              src="/images/laio-badge-blue.png"
+              alt="LA.IO Louisiana Innovation"
+              className="hero-logo-laio"
+            />
           </div>
           <div className="hero-cta">
             <button className="btn-primary" onClick={handleAskData}>
