@@ -107,10 +107,19 @@ export async function POST(req) {
         });
         controller.close();
       } catch (err) {
-        send({
-          type: "done_text",
-          content: "Something went wrong. Please try again.",
-        });
+        console.error("[chat/route] API error:", err?.status, err?.message, err?.error);
+        const status = err?.status;
+        let message = "Something went wrong. Please try again.";
+        if (status === 401) {
+          message = "API authentication failed. Check that ANTHROPIC_API_KEY is set correctly in Vercel environment variables.";
+        } else if (status === 402 || status === 529) {
+          message = "API credits exhausted. Add credits at console.anthropic.com and redeploy.";
+        } else if (status === 429) {
+          message = "Rate limit hit. Wait a moment and try again.";
+        } else if (status === 500 || status === 503) {
+          message = "Anthropic API is having issues. Try again in a moment.";
+        }
+        send({ type: "done_text", content: message });
         controller.close();
       }
     },
