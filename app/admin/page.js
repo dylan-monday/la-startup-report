@@ -459,6 +459,12 @@ export default function AdminPage() {
   const [days,    setDays]    = useState(30);
   const [loading, setLoading] = useState(true);
 
+  function logout() {
+    sessionStorage.removeItem("la-admin-auth");
+    setAuthed(false);
+    setData(null);
+  }
+
   useEffect(() => {
     if (typeof window !== "undefined" &&
         sessionStorage.getItem("la-admin-auth") === "ok") {
@@ -590,6 +596,28 @@ export default function AdminPage() {
           }} />
           Live
         </div>
+
+        {/* Sign out */}
+        <button
+          onClick={logout}
+          style={{
+            marginLeft: 20,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "10px",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+            color: "rgba(122,154,170,0.45)",
+            padding: "4px 0",
+            transition: "color 0.15s",
+          }}
+          onMouseEnter={(e) => e.target.style.color = "rgba(200,220,232,0.75)"}
+          onMouseLeave={(e) => e.target.style.color = "rgba(122,154,170,0.45)"}
+        >
+          Sign out
+        </button>
       </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
