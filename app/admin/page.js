@@ -160,8 +160,8 @@ function PasswordGate({ onAuth }) {
     function vLen(v) { return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }
 
     // Build lattice geometry once
-    const GRID_N  = 3;
-    const scale   = Math.min(W, H) * 0.40;
+    const GRID_N  = 5;
+    const scale   = Math.min(W, H) * 0.52;
     const spacing = (scale * 2) / GRID_N;
     const nodes   = [];
     const nodeMap = {};
@@ -172,7 +172,7 @@ function PasswordGate({ onAuth }) {
           const x = (ix - GRID_N / 2) * spacing;
           const y = (iy - GRID_N / 2) * spacing;
           const z = (iz - GRID_N / 2) * spacing;
-          if (vLen([x, y, z]) <= scale * 1.05) {
+          if (vLen([x, y, z]) <= scale * 1.08) {
             nodeMap[`${ix}_${iy}_${iz}`] = nodes.length;
             nodes.push([x, y, z]);
           }
@@ -194,27 +194,47 @@ function PasswordGate({ onAuth }) {
       }
     }
 
+    // Mouse tracking — normalized -1..1 offset from center
+    let mouseX = 0, mouseY = 0;
+    let targetMX = 0, targetMY = 0;
+    function onMouseMove(e) {
+      targetMX = ((e.clientX / W) - 0.5) * 2;
+      targetMY = ((e.clientY / H) - 0.5) * 2;
+    }
+    window.addEventListener("mousemove", onMouseMove);
+
     // Animation loop
     let ax = 0.42, ay = 0.28;
     let raf;
 
     function draw() {
-      const persp = 1100;
+      // Smooth-follow mouse with lag
+      mouseX += (targetMX - mouseX) * 0.04;
+      mouseY += (targetMY - mouseY) * 0.04;
+
+      // Mouse adds a subtle tilt offset on top of auto-rotation
+      const rxTotal = ax + mouseY * 0.22;
+      const ryTotal = ay + mouseX * 0.28;
+
+      const persp = 1200;
       const cx = W / 2, cy = H / 2;
 
-      // Background — project navy with very slight vignette
       ctx.fillStyle = "#03243c";
       ctx.fillRect(0, 0, W, H);
 
-      // Edges
-      ctx.lineWidth = 0.75;
-      for (const [ai, bi] of edges) {
-        const a  = rotY(rotX(nodes[ai], ax), ay);
-        const b  = rotY(rotX(nodes[bi], ax), ay);
+      // Edges — sort back-to-front for correct layering
+      const edgeDrawList = edges.map(([ai, bi]) => {
+        const a  = rotY(rotX(nodes[ai], rxTotal), ryTotal);
+        const b  = rotY(rotX(nodes[bi], rxTotal), ryTotal);
         const pa = project(a, persp, cx, cy);
         const pb = project(b, persp, cx, cy);
-        const avgZ = (pa[2] + pb[2]) / 2;
-        const alpha = clamp(mapR(avgZ, persp * 0.3, persp * 2, 0.42, 0.04), 0, 1);
+        return { pa, pb, avgZ: (pa[2] + pb[2]) / 2 };
+      });
+      edgeDrawList.sort((a, b) => b.avgZ - a.avgZ);
+
+      for (const { pa, pb, avgZ } of edgeDrawList) {
+        const alpha = clamp(mapR(avgZ, persp * 0.3, persp * 2.2, 0.38, 0.03), 0, 1);
+        ctx.lineWidth = clamp(mapR(avgZ, persp * 0.3, persp * 2.2, 1.1, 0.4), 0.3, 1.2);
         ctx.strokeStyle = rgba("#0c7bb3", alpha);
         ctx.beginPath();
         ctx.moveTo(pa[0], pa[1]);
@@ -224,18 +244,18 @@ function PasswordGate({ onAuth }) {
 
       // Nodes
       for (const node of nodes) {
-        const r  = rotY(rotX(node, ax), ay);
+        const r  = rotY(rotX(node, rxTotal), ryTotal);
         const pr = project(r, persp, cx, cy);
-        const alpha = clamp(mapR(pr[2], persp * 0.3, persp * 2, 0.75, 0.08), 0, 1);
-        const sz = 2.2 * (persp / Math.max(pr[2], 1));
+        const alpha = clamp(mapR(pr[2], persp * 0.3, persp * 2.2, 0.70, 0.06), 0, 1);
+        const sz = clamp(2.8 * (persp / Math.max(pr[2], 1)), 0.5, 4.5);
         ctx.fillStyle = rgba("#80d0ff", alpha);
         ctx.beginPath();
         ctx.arc(pr[0], pr[1], sz / 2, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      ax += 0.0010;
-      ay += 0.0015;
+      ax += 0.00075;
+      ay += 0.00110;
       raf = requestAnimationFrame(draw);
     }
 
@@ -244,6 +264,7 @@ function PasswordGate({ onAuth }) {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("mousemove", onMouseMove);
     };
   }, []);
 
