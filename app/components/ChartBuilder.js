@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import {
   CANVAS, LAYOUT, FONTS, GRID, ATTRIBUTION, ILLUSTRATION,
-  getPalette, getPaletteOptions, DEFAULT_PALETTE,
+  getPalette, getDarkPalette, getPaletteOptions, DEFAULT_PALETTE,
 } from "../../lib/design-system";
 
 // ============================================================
@@ -400,7 +400,9 @@ async function renderChart(canvas, config) {
   canvas.width = CANVAS.width;
   canvas.height = CANVAS.height;
 
-  const palette = getPalette(config.palette || DEFAULT_PALETTE);
+  const palette = config.dark
+    ? getDarkPalette(config.palette || DEFAULT_PALETTE)
+    : getPalette(config.palette || DEFAULT_PALETTE);
 
   // Background
   ctx.fillStyle = palette.bg;
@@ -450,6 +452,7 @@ export default function ChartBuilder({ config, onClose }) {
   const canvasRef = useRef(null);
   const [palette, setPalette] = useState(config?.palette || DEFAULT_PALETTE);
   const [chartType, setChartType] = useState(config?.type || "bar");
+  const [darkMode, setDarkMode] = useState(false);
   const [rendering, setRendering] = useState(false);
 
   const paletteOptions = getPaletteOptions();
@@ -458,6 +461,7 @@ export default function ChartBuilder({ config, onClose }) {
     ...config,
     palette,
     type: chartType,
+    dark: darkMode,
   };
 
   const draw = useCallback(async () => {
@@ -465,7 +469,7 @@ export default function ChartBuilder({ config, onClose }) {
     setRendering(true);
     await renderChart(canvasRef.current, activeConfig);
     setRendering(false);
-  }, [palette, chartType, config]);
+  }, [palette, chartType, darkMode, config]);
 
   useEffect(() => {
     draw();
@@ -475,13 +479,14 @@ export default function ChartBuilder({ config, onClose }) {
     if (!canvasRef.current) return;
     const link = document.createElement("a");
     const title = (config?.title || "chart").toLowerCase().replace(/\s+/g, "-");
-    link.download = `la-startup-report-${title}-${palette}.png`;
+    const mode = darkMode ? "-dark" : "";
+    link.download = `la-startup-report-${title}-${palette}${mode}.png`;
     link.href = canvasRef.current.toDataURL("image/png");
     link.click();
   }
 
   return (
-    <div className="chart-builder">
+    <div className={`chart-builder ${darkMode ? "chart-builder--dark" : ""}`}>
       <div className="chart-builder-header">
         <span className="chart-builder-title">Chart Builder</span>
         <div className="chart-builder-controls">
@@ -517,6 +522,33 @@ export default function ChartBuilder({ config, onClose }) {
             ))}
           </div>
 
+          {/* Dark mode toggle */}
+          <button
+            className={`chart-dark-toggle ${darkMode ? "chart-dark-toggle--on" : ""}`}
+            onClick={() => setDarkMode(d => !d)}
+            title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          >
+            {darkMode ? (
+              // Sun icon
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <circle cx="7" cy="7" r="3" stroke="currentColor" strokeWidth="1.3"/>
+                <line x1="7" y1="0.5" x2="7" y2="2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <line x1="7" y1="11.5" x2="7" y2="13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <line x1="0.5" y1="7" x2="2.5" y2="7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <line x1="11.5" y1="7" x2="13.5" y2="7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <line x1="2.4" y1="2.4" x2="3.8" y2="3.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <line x1="10.2" y1="10.2" x2="11.6" y2="11.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <line x1="11.6" y1="2.4" x2="10.2" y2="3.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                <line x1="3.8" y1="10.2" x2="2.4" y2="11.6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+              </svg>
+            ) : (
+              // Moon icon
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M12 8.5A5.5 5.5 0 0 1 5.5 2a5.5 5.5 0 1 0 6.5 6.5z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+
           <button className="chart-download-btn" onClick={downloadPNG} disabled={rendering}>
             {rendering ? "Rendering..." : "Download PNG"}
           </button>
@@ -527,7 +559,7 @@ export default function ChartBuilder({ config, onClose }) {
         </div>
       </div>
 
-      <div className="chart-canvas-wrap">
+      <div className={`chart-canvas-wrap ${darkMode ? "chart-canvas-wrap--dark" : ""}`}>
         <canvas
           ref={canvasRef}
           className="chart-canvas"

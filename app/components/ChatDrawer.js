@@ -43,15 +43,18 @@ function parseChartConfig(text) {
 // ============================================================
 // Copy button for assistant messages
 // ============================================================
+const COPY_ATTRIBUTION = "\n\nSource: Louisiana Startup Report 2026, Greater New Orleans cohort (n=112). Albert Lepage Center for Entrepreneurship & Innovation, Tulane University · LA.io · mondayandpartners.com";
+
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
+    const textWithAttribution = text + COPY_ATTRIBUTION;
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(textWithAttribution);
     } catch {
       const ta = document.createElement("textarea");
-      ta.value = text;
+      ta.value = textWithAttribution;
       ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
       document.body.appendChild(ta);
       ta.select();

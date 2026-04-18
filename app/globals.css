@@ -1342,6 +1342,84 @@ body {
   padding: 20px;
   background: #f0f2f4;
   border-radius: 0 0 12px 12px;
+  transition: background 0.2s ease;
+}
+
+.chart-canvas-wrap--dark {
+  background: #0d0d20;
+}
+
+/* Dark mode toggle button */
+.chart-dark-toggle {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 7px;
+  color: var(--text-light);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chart-dark-toggle:hover {
+  color: var(--dark);
+  border-color: var(--border);
+}
+
+.chart-dark-toggle--on {
+  background: var(--dark);
+  border-color: var(--dark);
+  color: #c8dce8;
+}
+
+.chart-dark-toggle--on:hover {
+  background: #1a2a3a;
+  color: #e8f0f8;
+}
+
+/* Dark mode header skin */
+.chart-builder--dark .chart-builder-header {
+  background: #0d1a26;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.chart-builder--dark .chart-builder-title {
+  color: rgba(200, 220, 232, 0.5);
+}
+
+.chart-builder--dark .chart-control-group {
+  background: #0a1520;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.chart-builder--dark .chart-type-btn,
+.chart-builder--dark .chart-palette-btn {
+  color: rgba(200, 220, 232, 0.4);
+}
+
+.chart-builder--dark .chart-type-btn:hover,
+.chart-builder--dark .chart-palette-btn:hover {
+  color: rgba(200, 220, 232, 0.9);
+}
+
+.chart-builder--dark .chart-type-btn.active,
+.chart-builder--dark .chart-palette-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e8f0f8;
+}
+
+.chart-builder--dark .chart-close-btn {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(200, 220, 232, 0.4);
+}
+
+.chart-builder--dark .chart-close-btn:hover {
+  color: #e8f0f8;
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .chart-canvas {
