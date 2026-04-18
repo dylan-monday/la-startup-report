@@ -164,20 +164,29 @@ export default function ChatDrawer({ onRequestData }) {
     setStartersVisible(false);
     setQueryCount(c => c + 1);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 50000); // 50s client timeout
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: newMessages }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       const data = await res.json();
       setMessages([...newMessages, { role: "assistant", content: data.response }]);
-    } catch {
+    } catch (err) {
+      clearTimeout(timeout);
+      const isTimeout = err.name === "AbortError";
       setMessages([
         ...newMessages,
         {
           role: "assistant",
-          content: "Something went wrong connecting to the API. Check that the server is running and the API key is configured.",
+          content: isTimeout
+            ? "That query took too long to process. Try narrowing it down — for example, ask about one industry at a time rather than a comparison."
+            : "Something went wrong connecting to the API. Check that the server is running and the API key is configured.",
         },
       ]);
     } finally {
