@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { toolDefinitions, executeTool } from "../../../lib/data-tools";
 import { systemPrompt } from "../../../lib/system-prompt";
+import { trackSession } from "../../../lib/analytics";
 
 export const maxDuration = 60;
 
@@ -29,6 +30,12 @@ export async function POST(req) {
     ? [raw[0], ...raw.slice(-(MAX_HISTORY_TURNS * 2))]
     : raw;
 
+  // Analytics — accumulate across all tool-use iterations in this request
+  const sessionId      = crypto.randomUUID();
+  let totalInputTokens  = 0;
+  let totalOutputTokens = 0;
+  const toolsUsed       = [];
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -53,10 +60,21 @@ export async function POST(req) {
             messages: currentMessages,
           });
 
+          // Accumulate token usage for every API call in the loop
+          if (response.usage) {
+            totalInputTokens  += response.usage.input_tokens  || 0;
+            totalOutputTokens += response.usage.output_tokens || 0;
+          }
+
           if (response.stop_reason === "tool_use") {
             const toolUseBlocks = response.content.filter(
               (b) => b.type === "tool_use"
             );
+
+            // Track which tools were called
+            for (const toolUse of toolUseBlocks) {
+              toolsUsed.push(toolUse.name);
+            }
 
             // Send a status message for each tool being called
             for (const toolUse of toolUseBlocks) {
@@ -93,6 +111,15 @@ export async function POST(req) {
             // Small yield so SSE actually flushes between chunks
             await new Promise((r) => setTimeout(r, 0));
           }
+
+          // Log completed session to analytics store
+          trackSession({
+            sessionId,
+            queryCount:   anthropicMessages.filter((m) => m.role === "user").length,
+            inputTokens:  totalInputTokens,
+            outputTokens: totalOutputTokens,
+            toolsUsed,
+          });
 
           send({ type: "done" });
           controller.close();
