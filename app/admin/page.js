@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import "../globals.css";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -11,6 +12,7 @@ function fmtNum(n) {
 }
 
 function fmtCost(n) {
+  if (n === 0) return "$0.00";
   if (n >= 100) return "$" + Math.round(n).toLocaleString();
   return "$" + n.toFixed(2);
 }
@@ -25,43 +27,21 @@ function relTime(ts) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
-
-const C = {
-  indigoBg:    "#f8f8ff",
-  indigoSoft:  "#ebebf8",
-  indigoMid:   "#8282b6",
-  indigo:      "#565698",
-  indigoDeep:  "#3a3a78",
-  navy:        "#1e1e4a",
-  text:        "#363636",
-  textMid:     "#6b6b8a",
-  amberMid:    "#c8a460",
-  amber:       "#a07c30",
-  greenMid:    "#76aa7a",
-  green:       "#48854c",
-  white:       "#ffffff",
-  border:      "#ebebf8",
-  rowAlt:      "#f4f4fb",
-};
-
-const MONO  = "'JetBrains Mono', 'Courier New', monospace";
-const AKTIV = "var(--font-aktiv), 'Helvetica Neue', Arial, sans-serif";
-
 // ── SVG line chart ────────────────────────────────────────────────────────────
 
 function LineChart({ series, labels, height = 160 }) {
   if (!series?.length || !labels?.length) return null;
 
   const W = 600, H = height;
-  const pad = { t: 18, r: 12, b: 30, l: 48 };
+  const pad = { t: 16, r: 10, b: 28, l: 44 };
   const pw = W - pad.l - pad.r;
   const ph = H - pad.t - pad.b;
 
   const allVals = series.flatMap((s) => s.values);
   const maxVal  = Math.max(...allVals, 1);
+  const baseline = pad.t + ph;
 
-  function pts(values) {
+  function toPoints(values) {
     return values.map((v, i) => ({
       x: pad.l + (i / Math.max(values.length - 1, 1)) * pw,
       y: pad.t + ph - (v / maxVal) * ph,
@@ -80,53 +60,47 @@ function LineChart({ series, labels, height = 160 }) {
     return d;
   }
 
-  const yTicks   = [0, Math.round(maxVal / 2), maxVal];
-  const baseline = pad.t + ph;
-  const step     = Math.max(1, Math.ceil(labels.length / 7));
+  const yTicks = [0, Math.round(maxVal / 2), maxVal];
+  const step   = Math.max(1, Math.ceil(labels.length / 7));
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block" }}>
-      {/* Horizontal grid */}
       {yTicks.map((tick, i) => {
         const y = pad.t + ph - (tick / maxVal) * ph;
         return (
           <g key={i}>
-            <line x1={pad.l} y1={y} x2={W - pad.r} y2={y} stroke={C.indigoSoft} strokeWidth="1" />
-            <text
-              x={pad.l - 6} y={y + 4}
-              textAnchor="end" fontSize="11"
-              fontFamily={MONO} fill={C.textMid}
-            >
+            <line x1={pad.l} y1={y} x2={W - pad.r} y2={y}
+              stroke="var(--border-light)" strokeWidth="1" />
+            <text x={pad.l - 6} y={y + 4} textAnchor="end"
+              fontSize="11" fontFamily="'JetBrains Mono', monospace"
+              fill="var(--text-light)">
               {tick >= 1000 ? fmtNum(tick) : tick}
             </text>
           </g>
         );
       })}
 
-      {/* Series (area + line) */}
       {series.map((s, si) => {
-        const points  = pts(s.values);
+        const points   = toPoints(s.values);
         const linePath = bezier(points);
         const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${baseline} L ${points[0].x.toFixed(1)} ${baseline} Z`;
         return (
           <g key={si}>
             <path d={areaPath} fill={s.color} opacity={si === 0 ? 0.1 : 0.05} />
-            <path d={linePath} fill="none" stroke={s.color} strokeWidth="1.75" strokeLinecap="round" />
+            <path d={linePath} fill="none" stroke={s.color}
+              strokeWidth="1.75" strokeLinecap="round" />
           </g>
         );
       })}
 
-      {/* X-axis labels */}
       {labels.map((label, i) => {
         if (i % step !== 0 && i !== labels.length - 1) return null;
         const x = pad.l + (i / Math.max(labels.length - 1, 1)) * pw;
         return (
-          <text
-            key={i}
-            x={x.toFixed(1)} y={H - 5}
+          <text key={i} x={x.toFixed(1)} y={H - 4}
             textAnchor="middle" fontSize="10"
-            fontFamily={MONO} fill={C.textMid}
-          >
+            fontFamily="'JetBrains Mono', monospace"
+            fill="var(--text-light)">
             {label}
           </text>
         );
@@ -140,6 +114,138 @@ function LineChart({ series, labels, height = 160 }) {
 function PasswordGate({ onAuth }) {
   const [pwd, setPwd]     = useState("");
   const [shake, setShake] = useState(false);
+  const canvasRef         = useRef(null);
+
+  // Crystal lattice animation — ported from v2-geodesic.html
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+
+    let W = window.innerWidth;
+    let H = window.innerHeight;
+    canvas.width  = W;
+    canvas.height = H;
+
+    function onResize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width  = W;
+      canvas.height = H;
+    }
+    window.addEventListener("resize", onResize);
+
+    // 3D math helpers
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function mapR(v, a1, a2, b1, b2) { return b1 + (v - a1) / (a2 - a1) * (b2 - b1); }
+    function rgba(hex, a) {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},${a.toFixed(3)})`;
+    }
+    function rotX(p, a) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c];
+    }
+    function rotY(p, a) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [p[0] * c + p[2] * s, p[1], -p[0] * s + p[2] * c];
+    }
+    function project(pt, persp, cx, cy) {
+      const z = pt[2] + persp;
+      const f = persp / Math.max(z, 1);
+      return [cx + pt[0] * f, cy + pt[1] * f, z];
+    }
+    function vLen(v) { return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]); }
+
+    // Build lattice geometry once
+    const GRID_N  = 3;
+    const scale   = Math.min(W, H) * 0.40;
+    const spacing = (scale * 2) / GRID_N;
+    const nodes   = [];
+    const nodeMap = {};
+
+    for (let ix = 0; ix <= GRID_N; ix++) {
+      for (let iy = 0; iy <= GRID_N; iy++) {
+        for (let iz = 0; iz <= GRID_N; iz++) {
+          const x = (ix - GRID_N / 2) * spacing;
+          const y = (iy - GRID_N / 2) * spacing;
+          const z = (iz - GRID_N / 2) * spacing;
+          if (vLen([x, y, z]) <= scale * 1.05) {
+            nodeMap[`${ix}_${iy}_${iz}`] = nodes.length;
+            nodes.push([x, y, z]);
+          }
+        }
+      }
+    }
+
+    const edges = [];
+    for (let ix = 0; ix <= GRID_N; ix++) {
+      for (let iy = 0; iy <= GRID_N; iy++) {
+        for (let iz = 0; iz <= GRID_N; iz++) {
+          const idx = nodeMap[`${ix}_${iy}_${iz}`];
+          if (idx === undefined) continue;
+          for (const [dx, dy, dz] of [[1,0,0],[0,1,0],[0,0,1]]) {
+            const nidx = nodeMap[`${ix+dx}_${iy+dy}_${iz+dz}`];
+            if (nidx !== undefined) edges.push([idx, nidx]);
+          }
+        }
+      }
+    }
+
+    // Animation loop
+    let ax = 0.42, ay = 0.28;
+    let raf;
+
+    function draw() {
+      const persp = 1100;
+      const cx = W / 2, cy = H / 2;
+
+      // Background — project navy with very slight vignette
+      ctx.fillStyle = "#03243c";
+      ctx.fillRect(0, 0, W, H);
+
+      // Edges
+      ctx.lineWidth = 0.75;
+      for (const [ai, bi] of edges) {
+        const a  = rotY(rotX(nodes[ai], ax), ay);
+        const b  = rotY(rotX(nodes[bi], ax), ay);
+        const pa = project(a, persp, cx, cy);
+        const pb = project(b, persp, cx, cy);
+        const avgZ = (pa[2] + pb[2]) / 2;
+        const alpha = clamp(mapR(avgZ, persp * 0.3, persp * 2, 0.42, 0.04), 0, 1);
+        ctx.strokeStyle = rgba("#0c7bb3", alpha);
+        ctx.beginPath();
+        ctx.moveTo(pa[0], pa[1]);
+        ctx.lineTo(pb[0], pb[1]);
+        ctx.stroke();
+      }
+
+      // Nodes
+      for (const node of nodes) {
+        const r  = rotY(rotX(node, ax), ay);
+        const pr = project(r, persp, cx, cy);
+        const alpha = clamp(mapR(pr[2], persp * 0.3, persp * 2, 0.75, 0.08), 0, 1);
+        const sz = 2.2 * (persp / Math.max(pr[2], 1));
+        ctx.fillStyle = rgba("#80d0ff", alpha);
+        ctx.beginPath();
+        ctx.arc(pr[0], pr[1], sz / 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ax += 0.0010;
+      ay += 0.0015;
+      raf = requestAnimationFrame(draw);
+    }
+
+    draw();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
 
   function submit(e) {
     e.preventDefault();
@@ -155,19 +261,59 @@ function PasswordGate({ onAuth }) {
   }
 
   return (
-    <div style={{
-      minHeight: "100vh", background: C.navy,
-      display: "flex", alignItems: "center", justifyContent: "center",
-    }}>
-      <div style={{ textAlign: "center" }}>
+    <div style={{ position: "relative", minHeight: "100vh", background: "#03243c", overflow: "hidden" }}>
+
+      {/* Animated canvas background */}
+      <canvas
+        ref={canvasRef}
+        style={{
+          position: "absolute",
+          top: 0, left: 0,
+          width: "100%", height: "100%",
+          display: "block",
+        }}
+      />
+
+      {/* Centered content */}
+      <div style={{
+        position: "relative",
+        zIndex: 10,
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+      }}>
+
+        {/* LA.IO logo */}
+        <div style={{ marginBottom: 40 }}>
+          <img
+            src="/images/laio-logo.svg"
+            alt="LA.io"
+            style={{
+              height: 26,
+              width: "auto",
+              display: "block",
+              opacity: 0.55,
+              filter: "brightness(10)",
+            }}
+          />
+        </div>
+
+        {/* Label */}
         <div style={{
-          fontFamily: MONO, fontSize: "11px", letterSpacing: "0.14em",
-          color: C.indigoMid, textTransform: "uppercase", marginBottom: "40px",
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "9px",
+          letterSpacing: "2.5px",
+          textTransform: "uppercase",
+          color: "rgba(122,154,170,0.65)",
+          marginBottom: 36,
         }}>
           Louisiana Startup Report · Admin
         </div>
 
-        <form onSubmit={submit}>
+        {/* Form */}
+        <form onSubmit={submit} style={{ width: 280 }}>
           <div style={{ animation: shake ? "shake 0.45s ease" : "none" }}>
             <input
               type="password"
@@ -176,33 +322,61 @@ function PasswordGate({ onAuth }) {
               placeholder="Password"
               autoFocus
               style={{
-                display: "block", width: "260px", padding: "13px 16px",
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(130,130,182,0.35)",
-                color: "#fff", fontFamily: MONO, fontSize: "14px",
-                outline: "none", marginBottom: "10px",
-                letterSpacing: "0.06em",
+                display: "block",
+                width: "100%",
+                padding: "13px 16px",
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(12,123,179,0.25)",
+                color: "#c8dce8",
+                fontFamily: "'Aktiv Grotesk', -apple-system, sans-serif",
+                fontWeight: 300,
+                fontSize: "15px",
+                outline: "none",
+                marginBottom: 10,
+                boxSizing: "border-box",
+                borderRadius: 0,
               }}
             />
-            <button type="submit" style={{
-              width: "100%", padding: "13px",
-              background: C.indigo, border: "none",
-              color: "#fff", fontFamily: AKTIV,
-              fontWeight: 300, fontSize: "13px",
-              letterSpacing: "0.1em", cursor: "pointer",
-              textTransform: "uppercase",
-            }}>
+            <button
+              type="submit"
+              style={{
+                width: "100%",
+                padding: "13px",
+                background: "rgba(12,123,179,0.2)",
+                border: "1px solid rgba(12,123,179,0.4)",
+                color: "#80d0ff",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "11px",
+                letterSpacing: "2px",
+                textTransform: "uppercase",
+                cursor: "pointer",
+                borderRadius: 0,
+              }}
+            >
               Enter
             </button>
           </div>
         </form>
+
+        {/* Footer */}
+        <div style={{
+          position: "absolute",
+          bottom: 32,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "9px",
+          letterSpacing: "1.5px",
+          color: "rgba(122,154,170,0.3)",
+          textTransform: "uppercase",
+        }}>
+          mondayandpartners.com
+        </div>
       </div>
 
       <style>{`
         @keyframes shake {
           0%, 100% { transform: translateX(0); }
-          20%       { transform: translateX(-8px); }
-          60%       { transform: translateX(8px); }
+          25%       { transform: translateX(-8px); }
+          75%       { transform: translateX(8px); }
         }
       `}</style>
     </div>
@@ -212,37 +386,38 @@ function PasswordGate({ onAuth }) {
 // ── Tool labels ───────────────────────────────────────────────────────────────
 
 const TOOL_LABELS = {
-  count_respondents:    "Count respondents",
-  get_distribution:     "Distribution",
-  cross_tabulate:       "Cross-tabulation",
-  get_numeric_stats:    "Numeric stats",
-  analyze_funding_gaps: "Funding gap",
+  count_respondents:      "Count respondents",
+  get_distribution:       "Distribution",
+  cross_tabulate:         "Cross-tabulation",
+  get_numeric_stats:      "Numeric stats",
+  analyze_funding_gaps:   "Funding gap",
   get_revenue_trajectory: "Revenue trajectory",
-  get_dataset_summary:  "Dataset summary",
-  list_available_fields:"Field listing",
+  get_dataset_summary:    "Dataset summary",
+  list_available_fields:  "Field listing",
 };
 
-// ── LED regions (dataset coverage) ───────────────────────────────────────────
+// ── LED regions ───────────────────────────────────────────────────────────────
 
 const LED_REGIONS = [
-  { name: "Greater New Orleans",  n: 112, active: true  },
-  { name: "Capital Region",       n: 0,   active: false },
-  { name: "Acadiana",             n: 0,   active: false },
-  { name: "Central Louisiana",    n: 0,   active: false },
-  { name: "Northwest Louisiana",  n: 0,   active: false },
-  { name: "North Delta",          n: 0,   active: false },
-  { name: "Southwest Louisiana",  n: 0,   active: false },
-  { name: "Northshore",           n: 0,   active: false },
+  { name: "Greater New Orleans", n: 112, active: true  },
+  { name: "Capital Region",      n: 0,   active: false },
+  { name: "Acadiana",            n: 0,   active: false },
+  { name: "Central Louisiana",   n: 0,   active: false },
+  { name: "Northwest Louisiana", n: 0,   active: false },
+  { name: "North Delta",         n: 0,   active: false },
+  { name: "Southwest Louisiana", n: 0,   active: false },
+  { name: "Northshore",          n: 0,   active: false },
 ];
 
-// ── Shared card wrapper ───────────────────────────────────────────────────────
+// ── Card wrapper ──────────────────────────────────────────────────────────────
 
 function Card({ children, style }) {
   return (
     <div style={{
-      background: C.white,
-      border: `1px solid ${C.border}`,
-      padding: "28px 30px",
+      background: "var(--card-bg-solid)",
+      border: "1px solid var(--border-light)",
+      borderRadius: 8,
+      padding: "28px 28px",
       ...style,
     }}>
       {children}
@@ -250,18 +425,25 @@ function Card({ children, style }) {
   );
 }
 
-function CardLabel({ children, sub }) {
+function CardHeading({ label, sub }) {
   return (
-    <div style={{ marginBottom: "20px" }}>
+    <div style={{ marginBottom: 20 }}>
       <div style={{
-        fontFamily: AKTIV, fontSize: "11px", fontWeight: 300,
-        letterSpacing: "0.1em", textTransform: "uppercase",
-        color: C.textMid, marginBottom: sub ? "4px" : 0,
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "10px",
+        letterSpacing: "2px",
+        textTransform: "uppercase",
+        color: "var(--text-light)",
+        marginBottom: sub ? 4 : 0,
       }}>
-        {children}
+        {label}
       </div>
       {sub && (
-        <div style={{ fontFamily: MONO, fontSize: "11px", color: C.textMid }}>
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "11px",
+          color: "var(--text-light)",
+        }}>
           {sub}
         </div>
       )}
@@ -277,7 +459,6 @@ export default function AdminPage() {
   const [days,    setDays]    = useState(30);
   const [loading, setLoading] = useState(true);
 
-  // Check session auth on mount
   useEffect(() => {
     if (typeof window !== "undefined" &&
         sessionStorage.getItem("la-admin-auth") === "ok") {
@@ -293,103 +474,135 @@ export default function AdminPage() {
     setLoading(false);
   }, [days]);
 
-  // Fetch on auth + day change
   useEffect(() => {
     if (authed) { setLoading(true); fetchData(); }
   }, [authed, fetchData]);
 
-  // Auto-refresh every 30 s
   useEffect(() => {
     if (!authed) return;
     const id = setInterval(fetchData, 30_000);
     return () => clearInterval(id);
   }, [authed, fetchData]);
 
-  if (!authed) {
-    return (
-      <PasswordGate
-        onAuth={() => { setAuthed(true); }}
-      />
-    );
-  }
+  if (!authed) return <PasswordGate onAuth={() => setAuthed(true)} />;
 
   const { totals, dailyData, toolCounts, recent } = data || {};
-  const totalTokens = (totals?.inputTokens || 0) + (totals?.outputTokens || 0);
-  const avgQueriesPerChat = totals?.chats
+  const totalTokens    = (totals?.inputTokens || 0) + (totals?.outputTokens || 0);
+  const avgPerSession  = totals?.chats
     ? (totals.queries / totals.chats).toFixed(1)
-    : "—";
+    : "0";
 
   return (
-    <div style={{ minHeight: "100vh", background: C.indigoBg }}>
+    <div style={{
+      minHeight: "100vh",
+      background: "var(--bg)",
+      fontFamily: "'Aktiv Grotesk', -apple-system, sans-serif",
+      fontWeight: 300,
+    }}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header style={{
-        background: C.navy,
-        height: "58px",
-        padding: "0 40px",
+      <div style={{
+        position: "sticky",
+        top: 0,
+        zIndex: 50,
+        background: "rgba(3, 36, 60, 0.96)",
+        backdropFilter: "blur(16px)",
+        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        height: 52,
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
-        position: "sticky", top: 0, zIndex: 100,
+        padding: "0 60px",
+        gap: 0,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "18px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
           <span style={{
-            fontFamily: MONO, fontSize: "10px",
-            letterSpacing: "0.16em", color: C.indigoMid,
-            textTransform: "uppercase",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "12px",
+            letterSpacing: "2px",
+            color: "var(--accent-bright)",
+            fontWeight: 400,
           }}>
-            Admin
+            ADMIN
           </span>
-          <span style={{ width: 1, height: 14, background: "rgba(130,130,182,0.3)" }} />
           <span style={{
-            fontFamily: AKTIV, fontSize: "13px",
-            fontWeight: 300, color: "rgba(255,255,255,0.6)",
+            width: 1, height: 14,
+            background: "rgba(122,154,170,0.3)",
+            display: "inline-block",
+          }} />
+          <span style={{
+            fontFamily: "'Aktiv Grotesk', -apple-system, sans-serif",
+            fontSize: "13px",
+            fontWeight: 300,
+            color: "rgba(200,220,232,0.65)",
           }}>
             Louisiana Startup Report
           </span>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
-          {/* Day range selector */}
-          <div style={{ display: "flex", border: "1px solid rgba(130,130,182,0.3)", overflow: "hidden" }}>
-            {[7, 30, 90].map((d) => (
-              <button
-                key={d}
-                onClick={() => setDays(d)}
-                style={{
-                  padding: "5px 14px", border: "none", cursor: "pointer",
-                  background: days === d ? C.indigo : "transparent",
-                  color: days === d ? "#fff" : "rgba(255,255,255,0.45)",
-                  fontFamily: MONO, fontSize: "11px",
-                  transition: "background 0.15s",
-                }}
-              >
-                {d}d
-              </button>
-            ))}
-          </div>
+        <div style={{ flex: 1 }} />
 
-          {/* Live badge */}
-          <div style={{
-            display: "flex", alignItems: "center", gap: "6px",
-            fontFamily: MONO, fontSize: "11px", color: C.green,
-          }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: "50%",
-              background: C.green, display: "inline-block",
-            }} />
-            live
-          </div>
+        {/* Day range */}
+        <div style={{
+          display: "flex",
+          border: "1px solid rgba(122,154,170,0.25)",
+          borderRadius: 3,
+          overflow: "hidden",
+          marginRight: 20,
+        }}>
+          {[7, 30, 90].map((d) => (
+            <button
+              key={d}
+              onClick={() => setDays(d)}
+              style={{
+                padding: "5px 14px",
+                border: "none",
+                borderRight: d !== 90 ? "1px solid rgba(122,154,170,0.25)" : "none",
+                cursor: "pointer",
+                background: days === d ? "rgba(12,123,179,0.25)" : "transparent",
+                color: days === d ? "#0c7bb3" : "rgba(200,220,232,0.4)",
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "11px",
+                letterSpacing: "0.5px",
+                transition: "all 0.15s",
+              }}
+            >
+              {d}d
+            </button>
+          ))}
         </div>
-      </header>
+
+        {/* Live badge */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "10px",
+          color: "#48854c",
+          letterSpacing: "1px",
+          textTransform: "uppercase",
+        }}>
+          <span style={{
+            width: 6, height: 6,
+            borderRadius: "50%",
+            background: "#48854c",
+            display: "inline-block",
+          }} />
+          Live
+        </div>
+      </div>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <main style={{ maxWidth: 1260, margin: "0 auto", padding: "36px 40px 60px" }}>
+      <main style={{ maxWidth: 1240, margin: "0 auto", padding: "40px 60px 80px" }}>
 
         {loading && (
           <div style={{
-            textAlign: "center", padding: "100px 0",
-            fontFamily: MONO, fontSize: "12px", color: C.textMid,
+            textAlign: "center",
+            padding: "100px 0",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: "11px",
+            color: "var(--text-light)",
+            letterSpacing: "1px",
           }}>
             Loading...
           </div>
@@ -398,75 +611,140 @@ export default function AdminPage() {
         {!loading && data && (
           <>
             {/* ── Stat cards ─────────────────────────────────────────────── */}
-            <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
-              {[
-                {
-                  label: "Conversations",
-                  value: fmtNum(totals.chats),
-                  sub: `${days}-day window`,
-                  color: C.indigo,
-                },
-                {
-                  label: "Total queries",
-                  value: fmtNum(totals.queries),
-                  sub: `${avgQueriesPerChat} avg per session`,
-                  color: C.indigo,
-                },
-                {
-                  label: "Tokens consumed",
-                  value: fmtNum(totalTokens),
-                  sub: `${fmtNum(totals.inputTokens)} in · ${fmtNum(totals.outputTokens)} out`,
-                  color: C.indigoDeep,
-                },
-                {
-                  label: "API cost",
-                  value: fmtCost(totals.cost),
-                  sub: `${fmtCost(totals.chats ? totals.cost / totals.chats : 0)} per conversation`,
-                  color: C.amber,
-                },
-              ].map(({ label, value, sub, color }) => (
-                <Card key={label} style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontFamily: AKTIV, fontSize: "11px", fontWeight: 300,
-                    letterSpacing: "0.1em", textTransform: "uppercase",
-                    color: C.textMid, marginBottom: "10px",
-                  }}>
-                    {label}
-                  </div>
-                  <div style={{
-                    fontFamily: MONO, fontSize: "28px",
-                    color, fontWeight: 400, lineHeight: 1,
-                  }}>
-                    {value}
-                  </div>
-                  <div style={{
-                    fontFamily: MONO, fontSize: "11px",
-                    color: C.textMid, marginTop: "8px",
-                  }}>
-                    {sub}
-                  </div>
-                </Card>
-              ))}
+            <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
+
+              {/* Conversations — from live sessions only */}
+              <Card style={{ flex: 1 }}>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "10px", letterSpacing: "2px",
+                  textTransform: "uppercase", color: "var(--text-light)",
+                  marginBottom: 10,
+                }}>
+                  Conversations
+                </div>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "32px", color: "var(--accent-bright)",
+                  fontWeight: 400, lineHeight: 1,
+                }}>
+                  {fmtNum(totals.chats)}
+                </div>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "11px", color: "var(--text-light)", marginTop: 8,
+                }}>
+                  Live sessions · {days}d window
+                </div>
+              </Card>
+
+              <Card style={{ flex: 1 }}>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "10px", letterSpacing: "2px",
+                  textTransform: "uppercase", color: "var(--text-light)",
+                  marginBottom: 10,
+                }}>
+                  Total queries
+                </div>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "32px", color: "var(--accent-bright)",
+                  fontWeight: 400, lineHeight: 1,
+                }}>
+                  {fmtNum(totals.queries)}
+                </div>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "11px", color: "var(--text-light)", marginTop: 8,
+                }}>
+                  {avgPerSession} avg per session
+                </div>
+              </Card>
+
+              <Card style={{ flex: 1 }}>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "10px", letterSpacing: "2px",
+                  textTransform: "uppercase", color: "var(--text-light)",
+                  marginBottom: 10,
+                }}>
+                  Tokens consumed
+                </div>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "32px", color: "var(--dark)",
+                  fontWeight: 400, lineHeight: 1,
+                }}>
+                  {fmtNum(totalTokens)}
+                </div>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "11px", color: "var(--text-light)", marginTop: 8,
+                }}>
+                  {fmtNum(totals.inputTokens)} in · {fmtNum(totals.outputTokens)} out
+                </div>
+              </Card>
+
+              {/* Cost — live only, no seed contamination */}
+              <Card style={{ flex: 1 }}>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "10px", letterSpacing: "2px",
+                  textTransform: "uppercase", color: "var(--text-light)",
+                  marginBottom: 10,
+                }}>
+                  API cost
+                </div>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "32px", color: "#a07c30",
+                  fontWeight: 400, lineHeight: 1,
+                }}>
+                  {fmtCost(totals.cost)}
+                </div>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: "11px", color: "var(--text-light)", marginTop: 8,
+                }}>
+                  {fmtCost(totals.chats ? totals.cost / totals.chats : 0)} per session · live only
+                </div>
+              </Card>
+            </div>
+
+            {/* ── Chart note ─────────────────────────────────────────────── */}
+            <div style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "10px",
+              color: "var(--text-light)",
+              letterSpacing: "0.5px",
+              marginBottom: 16,
+              paddingLeft: 2,
+            }}>
+              Charts include demo seed data for visualization. Stat cards above reflect live sessions only.
             </div>
 
             {/* ── Row 2: conversations + tool usage ─────────────────────── */}
-            <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
+            <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
 
-              {/* Conversations over time */}
               <Card style={{ flex: 2 }}>
-                <CardLabel sub={`${days}-day trend`}>Conversations</CardLabel>
+                <CardHeading label="Conversations" sub={`${days}-day trend · includes demo data`} />
                 <LineChart
-                  series={[{ values: dailyData.map((d) => d.chats), color: C.indigo }]}
+                  series={[{ values: dailyData.map((d) => d.chats), color: "#0c7bb3" }]}
                   labels={dailyData.map((d) => d.label)}
                   height={170}
                 />
               </Card>
 
-              {/* Tool usage */}
               <Card style={{ flex: 1 }}>
-                <CardLabel sub="Calls per tool">Tool usage</CardLabel>
+                <CardHeading label="Tool usage" sub="Calls per tool · all sessions" />
                 {Object.keys(toolCounts).length === 0 ? (
-                  <div style={{ fontFamily: MONO, fontSize: "12px", color: C.textMid }}>
+                  <div style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: "11px",
+                    color: "var(--text-light)",
+                    paddingTop: 8,
+                  }}>
                     No data yet
                   </div>
                 ) : (
@@ -478,26 +756,35 @@ export default function AdminPage() {
                         return (
                           <div key={tool}>
                             <div style={{
-                              display: "flex", justifyContent: "space-between",
+                              display: "flex",
+                              justifyContent: "space-between",
                               marginBottom: 5,
                             }}>
                               <span style={{
-                                fontFamily: AKTIV, fontSize: "12px",
-                                fontWeight: 300, color: C.text,
+                                fontFamily: "'Aktiv Grotesk', -apple-system, sans-serif",
+                                fontSize: "12px",
+                                fontWeight: 300,
+                                color: "var(--text)",
                               }}>
                                 {TOOL_LABELS[tool] || tool}
                               </span>
                               <span style={{
-                                fontFamily: MONO, fontSize: "11px", color: C.textMid,
+                                fontFamily: "'JetBrains Mono', monospace",
+                                fontSize: "11px",
+                                color: "var(--text-light)",
                               }}>
                                 {count}
                               </span>
                             </div>
-                            <div style={{ height: 4, background: C.indigoSoft, borderRadius: 1 }}>
+                            <div style={{
+                              height: 3,
+                              background: "var(--border-light)",
+                              borderRadius: 1,
+                            }}>
                               <div style={{
                                 height: "100%",
                                 width: `${(count / maxCount) * 100}%`,
-                                background: C.indigo,
+                                background: "var(--accent)",
                                 borderRadius: 1,
                                 transition: "width 0.5s ease",
                               }} />
@@ -510,24 +797,29 @@ export default function AdminPage() {
               </Card>
             </div>
 
-            {/* ── Row 3: token consumption + dataset coverage ────────────── */}
-            <div style={{ display: "flex", gap: 14, marginBottom: 20 }}>
+            {/* ── Row 3: token chart + dataset coverage ─────────────────── */}
+            <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
 
-              {/* Token consumption (dual line) */}
               <Card style={{ flex: 1 }}>
-                <CardLabel>Token consumption</CardLabel>
+                <CardHeading label="Token consumption" />
                 <div style={{ display: "flex", gap: 20, marginBottom: 16 }}>
                   {[
-                    { label: "Input",  color: C.indigo    },
-                    { label: "Output", color: C.indigoMid },
+                    { label: "Input",  color: "#0c7bb3" },
+                    { label: "Output", color: "#7a9aaa" },
                   ].map(({ label, color }) => (
                     <div key={label} style={{
                       display: "flex", alignItems: "center", gap: 7,
-                      fontFamily: MONO, fontSize: "11px", color,
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: "10px",
+                      color,
+                      letterSpacing: "1px",
+                      textTransform: "uppercase",
                     }}>
                       <span style={{
-                        display: "inline-block", width: 16, height: 2,
-                        background: color, borderRadius: 1,
+                        display: "inline-block",
+                        width: 14, height: 2,
+                        background: color,
+                        borderRadius: 1,
                       }} />
                       {label}
                     </div>
@@ -535,41 +827,57 @@ export default function AdminPage() {
                 </div>
                 <LineChart
                   series={[
-                    { values: dailyData.map((d) => d.inputTokens),  color: C.indigo    },
-                    { values: dailyData.map((d) => d.outputTokens), color: C.indigoMid },
+                    { values: dailyData.map((d) => d.inputTokens),  color: "#0c7bb3" },
+                    { values: dailyData.map((d) => d.outputTokens), color: "#7a9aaa" },
                   ]}
                   labels={dailyData.map((d) => d.label)}
                   height={140}
                 />
               </Card>
 
-              {/* Dataset coverage */}
               <Card style={{ flex: 1 }}>
-                <CardLabel sub="LED regions · 2025 baseline">Dataset coverage</CardLabel>
-                <div style={{ display: "flex", flexDirection: "column", gap: 11 }}>
+                <CardHeading
+                  label="Dataset coverage"
+                  sub="LED regions · 2025 baseline"
+                />
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {LED_REGIONS.map((region) => (
-                    <div key={region.name} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <div key={region.name} style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                    }}>
                       <div style={{
-                        flex: 1, fontFamily: AKTIV, fontSize: "12px", fontWeight: 300,
-                        color: region.active ? C.text : "#b0b0c8",
+                        flex: 1,
+                        fontFamily: "'Aktiv Grotesk', -apple-system, sans-serif",
+                        fontSize: "12px",
+                        fontWeight: 300,
+                        color: region.active ? "var(--text)" : "var(--text-light)",
                       }}>
                         {region.name}
                       </div>
                       <div style={{
-                        width: 110, height: 4,
-                        background: C.indigoSoft, borderRadius: 1, flexShrink: 0,
+                        width: 100,
+                        height: 3,
+                        background: "var(--border-light)",
+                        borderRadius: 1,
+                        flexShrink: 0,
                       }}>
                         <div style={{
                           height: "100%",
                           width: region.active ? "100%" : "0%",
-                          background: region.active ? C.amber : C.indigoSoft,
+                          background: region.active ? "#a07c30" : "var(--border-light)",
                           borderRadius: 1,
                         }} />
                       </div>
                       <div style={{
-                        fontFamily: MONO, fontSize: "11px",
-                        color: region.active ? C.amber : "#b0b0c8",
-                        width: 52, textAlign: "right", flexShrink: 0,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "10px",
+                        color: region.active ? "#a07c30" : "var(--text-light)",
+                        width: 48,
+                        textAlign: "right",
+                        flexShrink: 0,
+                        letterSpacing: "0.5px",
                       }}>
                         {region.active ? `n=${region.n}` : "2026"}
                       </div>
@@ -577,33 +885,37 @@ export default function AdminPage() {
                   ))}
                 </div>
                 <div style={{
-                  marginTop: 18, paddingTop: 14,
-                  borderTop: `1px solid ${C.border}`,
-                  fontFamily: AKTIV, fontSize: "11px", fontWeight: 300,
-                  color: C.textMid, lineHeight: 1.65,
+                  marginTop: 18,
+                  paddingTop: 14,
+                  borderTop: "1px solid var(--border-light)",
+                  fontFamily: "'Aktiv Grotesk', -apple-system, sans-serif",
+                  fontSize: "11px",
+                  fontWeight: 300,
+                  color: "var(--text-light)",
+                  lineHeight: 1.65,
                 }}>
-                  Current dataset covers Greater New Orleans only. Statewide
-                  expansion planned for the 2026 survey cycle.
+                  GNO-only for the 2025 cycle. Statewide expansion
+                  planned for 2026.
                 </div>
               </Card>
             </div>
 
             {/* ── Recent sessions ────────────────────────────────────────── */}
             <Card>
-              <CardLabel>Recent sessions</CardLabel>
+              <CardHeading label="Recent sessions" />
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
-                  <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                    {[
-                      "Session", "Time", "Queries",
-                      "Input tokens", "Output tokens", "Cost", "Type",
-                    ].map((h) => (
+                  <tr style={{ borderBottom: "1px solid var(--border-light)" }}>
+                    {["Session", "Time", "Queries", "Input", "Output", "Cost", ""].map((h) => (
                       <th key={h} style={{
-                        padding: "0 18px 11px 0",
+                        padding: "0 16px 11px 0",
                         textAlign: "left",
-                        fontFamily: MONO, fontSize: "10px",
-                        letterSpacing: "0.07em", color: C.textMid,
-                        fontWeight: 400, textTransform: "uppercase",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "9px",
+                        letterSpacing: "1.5px",
+                        color: "var(--text-light)",
+                        fontWeight: 400,
+                        textTransform: "uppercase",
                       }}>
                         {h}
                       </th>
@@ -614,35 +926,74 @@ export default function AdminPage() {
                   {recent.map((s, idx) => (
                     <tr
                       key={s.sessionId}
-                      style={{ background: idx % 2 === 0 ? C.white : C.rowAlt }}
+                      style={{
+                        borderBottom: "1px solid var(--border-light)",
+                        background: idx % 2 !== 0 ? "rgba(3,36,60,0.02)" : "transparent",
+                      }}
                     >
-                      <td style={{ padding: "11px 18px 11px 0", fontFamily: MONO, fontSize: "11px", color: C.textMid }}>
+                      <td style={{
+                        padding: "11px 16px 11px 0",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "11px",
+                        color: "var(--text-light)",
+                      }}>
                         {s.sessionId.slice(0, 14)}
                       </td>
-                      <td style={{ padding: "11px 18px 11px 0", fontFamily: MONO, fontSize: "11px", color: C.textMid }}>
+                      <td style={{
+                        padding: "11px 16px 11px 0",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "11px",
+                        color: "var(--text-light)",
+                      }}>
                         {relTime(s.timestamp)}
                       </td>
-                      <td style={{ padding: "11px 18px 11px 0", fontFamily: MONO, fontSize: "11px", color: C.text }}>
+                      <td style={{
+                        padding: "11px 16px 11px 0",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "11px",
+                        color: "var(--text)",
+                      }}>
                         {s.queryCount}
                       </td>
-                      <td style={{ padding: "11px 18px 11px 0", fontFamily: MONO, fontSize: "11px", color: C.text }}>
+                      <td style={{
+                        padding: "11px 16px 11px 0",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "11px",
+                        color: "var(--text)",
+                      }}>
                         {fmtNum(s.inputTokens)}
                       </td>
-                      <td style={{ padding: "11px 18px 11px 0", fontFamily: MONO, fontSize: "11px", color: C.text }}>
+                      <td style={{
+                        padding: "11px 16px 11px 0",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "11px",
+                        color: "var(--text)",
+                      }}>
                         {fmtNum(s.outputTokens)}
                       </td>
-                      <td style={{ padding: "11px 18px 11px 0", fontFamily: MONO, fontSize: "11px", color: C.amber }}>
+                      <td style={{
+                        padding: "11px 16px 11px 0",
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: "11px",
+                        color: "#a07c30",
+                      }}>
                         {fmtCost(s.cost)}
                       </td>
-                      <td style={{ padding: "11px 18px 11px 0" }}>
-                        <span style={{
-                          fontFamily: MONO, fontSize: "10px",
-                          letterSpacing: "0.06em",
-                          color: s.live ? C.green : C.textMid,
-                          textTransform: "uppercase",
-                        }}>
-                          {s.live ? "live" : "seed"}
-                        </span>
+                      <td style={{ padding: "11px 0 11px 0" }}>
+                        {s.live && (
+                          <span style={{
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: "9px",
+                            letterSpacing: "1px",
+                            color: "#48854c",
+                            textTransform: "uppercase",
+                            border: "1px solid rgba(72,133,76,0.3)",
+                            borderRadius: 2,
+                            padding: "2px 6px",
+                          }}>
+                            Live
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -652,13 +1003,18 @@ export default function AdminPage() {
 
             {/* ── Footer ───────────────────────────────────────────────────── */}
             <div style={{
-              marginTop: 32, paddingTop: 20,
-              borderTop: `1px solid ${C.border}`,
-              fontFamily: MONO, fontSize: "10px", color: C.textMid,
-              display: "flex", justifyContent: "space-between",
+              marginTop: 28,
+              paddingTop: 20,
+              borderTop: "1px solid var(--border-light)",
+              display: "flex",
+              justifyContent: "space-between",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "10px",
+              color: "var(--text-light)",
+              letterSpacing: "0.5px",
             }}>
-              <span>Louisiana Startup Report · Admin · {new Date().getFullYear()}</span>
-              <span>Refreshes every 30s · Seed data pre-loaded for demo</span>
+              <span>Louisiana Startup Report · Admin</span>
+              <span>Refreshes every 30s</span>
             </div>
           </>
         )}
