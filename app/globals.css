@@ -1054,3 +1054,237 @@ body {
     width: 280px;
   }
 }
+
+/* ============================================
+   VISUALIZE BUTTON (on assistant messages)
+   ============================================ */
+.visualize-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.visualize-btn:hover {
+  background: var(--card-bg-solid);
+  border-color: var(--accent-bright);
+}
+
+/* ============================================
+   CHART MODAL OVERLAY
+   ============================================ */
+.chart-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 36, 60, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+}
+
+.chart-modal {
+  background: var(--bg);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 1100px;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.25);
+}
+
+/* ============================================
+   CHART BUILDER
+   ============================================ */
+.chart-builder {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.chart-builder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.chart-builder-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-light);
+  white-space: nowrap;
+}
+
+.chart-builder-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Chart type and palette button groups */
+.chart-control-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  border-radius: 7px;
+  padding: 3px;
+}
+
+.chart-type-btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-light);
+  font-family: 'Aktiv Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 300;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+}
+
+.chart-type-btn:hover {
+  color: var(--dark);
+}
+
+.chart-type-btn.active {
+  background: var(--dark);
+  color: #e8eef2;
+}
+
+.chart-palette-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-light);
+  font-family: 'Aktiv Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 300;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+}
+
+.chart-palette-btn:hover {
+  color: var(--dark);
+}
+
+.chart-palette-btn.active {
+  background: var(--dark);
+  color: #e8eef2;
+}
+
+.chart-palette-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.chart-download-btn {
+  padding: 7px 16px;
+  background: var(--dark);
+  border: none;
+  border-radius: 7px;
+  color: #c8dce8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.chart-download-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff;
+}
+
+.chart-download-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.chart-close-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  color: var(--text-light);
+  cursor: pointer;
+  font-size: 14px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.chart-close-btn:hover {
+  color: var(--dark);
+  border-color: var(--border);
+}
+
+/* Canvas preview — scales to fit the modal */
+.chart-canvas-wrap {
+  padding: 20px;
+  background: #f0f2f4;
+  border-radius: 0 0 12px 12px;
+}
+
+.chart-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 6px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 700px) {
+  .chart-modal-overlay {
+    padding: 16px;
+  }
+
+  .chart-builder-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-builder-controls {
+    width: 100%;
+  }
+
+  .chart-control-group {
+    flex-wrap: wrap;
+  }
+}
