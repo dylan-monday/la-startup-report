@@ -2,12 +2,21 @@ import Anthropic from "@anthropic-ai/sdk";
 import { toolDefinitions, executeTool } from "../../../lib/data-tools";
 import { systemPrompt } from "../../../lib/system-prompt";
 
-// Raise Vercel function timeout — requires Pro plan.
-// On Hobby plan this is ignored and the hard limit is 10s.
-// Upgrade at vercel.com/dashboard -> project -> Settings -> Functions
 export const maxDuration = 60;
 
 const anthropic = new Anthropic();
+
+// Human-readable status lines shown during tool calls
+const TOOL_STATUS = {
+  get_dataset_summary:    "Reviewing survey overview...",
+  get_distribution:       "Querying data distributions...",
+  cross_tabulate:         "Running cross-analysis...",
+  get_numeric_stats:      "Calculating statistics...",
+  analyze_funding_gaps:   "Analyzing funding patterns...",
+  get_revenue_trajectory: "Tracing revenue trends...",
+  count_respondents:      "Counting respondents...",
+  list_available_fields:  "Checking available fields...",
+};
 
 export async function POST(req) {
   const { messages } = await req.json();
@@ -17,48 +26,98 @@ export async function POST(req) {
     content: m.content,
   }));
 
-  let currentMessages = [...anthropicMessages];
-  const MAX_ITERATIONS = 10;
+  const encoder = new TextEncoder();
 
-  for (let i = 0; i < MAX_ITERATIONS; i++) {
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 2048,  // Reduced from 4096 — keeps responses focused and faster
-      system: systemPrompt,
-      tools: toolDefinitions,
-      messages: currentMessages,
-    });
+  const stream = new ReadableStream({
+    async start(controller) {
+      function send(obj) {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(obj)}\n\n`));
+        } catch (_) {}
+      }
 
-    if (response.stop_reason === "tool_use") {
-      const toolUseBlocks = response.content.filter(
-        (block) => block.type === "tool_use"
-      );
+      let currentMessages = [...anthropicMessages];
+      const MAX_ITERATIONS = 10;
 
-      currentMessages.push({ role: "assistant", content: response.content });
+      try {
+        for (let i = 0; i < MAX_ITERATIONS; i++) {
+          // Non-streaming call for tool-use turns — we need the full message
+          const response = await anthropic.messages.create({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 2048,
+            system: systemPrompt,
+            tools: toolDefinitions,
+            messages: currentMessages,
+          });
 
-      const toolResults = toolUseBlocks.map((toolUse) => {
-        const result = executeTool(toolUse.name, toolUse.input);
-        return {
-          type: "tool_result",
-          tool_use_id: toolUse.id,
-          content: JSON.stringify(result),
-        };
-      });
+          if (response.stop_reason === "tool_use") {
+            const toolUseBlocks = response.content.filter(
+              (b) => b.type === "tool_use"
+            );
 
-      currentMessages.push({ role: "user", content: toolResults });
-      continue;
-    }
+            // Send a status message for each tool being called
+            for (const toolUse of toolUseBlocks) {
+              send({
+                type: "status",
+                message: TOOL_STATUS[toolUse.name] || "Analyzing data...",
+              });
+            }
 
-    const textContent = response.content
-      .filter((block) => block.type === "text")
-      .map((block) => block.text)
-      .join("");
+            currentMessages.push({ role: "assistant", content: response.content });
 
-    return Response.json({ response: textContent });
-  }
+            const toolResults = toolUseBlocks.map((toolUse) => ({
+              type: "tool_result",
+              tool_use_id: toolUse.id,
+              content: JSON.stringify(executeTool(toolUse.name, toolUse.input)),
+            }));
 
-  return Response.json({
-    response:
-      "I hit the iteration limit on that one. Try breaking it into two separate questions — for example, ask about Healthcare first, then Manufacturing.",
+            currentMessages.push({ role: "user", content: toolResults });
+            continue;
+          }
+
+          // Final text response — extract it and stream word-by-word
+          const textContent = response.content
+            .filter((b) => b.type === "text")
+            .map((b) => b.text)
+            .join("");
+
+          send({ type: "status", message: "Writing response..." });
+
+          // Stream words with a small delay so the client renders progressively
+          const words = textContent.split(" ");
+          for (let wi = 0; wi < words.length; wi++) {
+            send({ type: "delta", content: (wi > 0 ? " " : "") + words[wi] });
+            // Small yield so SSE actually flushes between chunks
+            await new Promise((r) => setTimeout(r, 0));
+          }
+
+          send({ type: "done" });
+          controller.close();
+          return;
+        }
+
+        // Hit iteration limit
+        send({
+          type: "done_text",
+          content:
+            "I hit the iteration limit on that one. Try breaking it into two separate questions — for example, ask about one industry at a time.",
+        });
+        controller.close();
+      } catch (err) {
+        send({
+          type: "done_text",
+          content: "Something went wrong. Please try again.",
+        });
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
   });
 }

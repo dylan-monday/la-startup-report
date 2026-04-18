@@ -1,13 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
 import AnimatedBackground from "./components/AnimatedBackground";
 import ChatDrawer from "./components/ChatDrawer";
 import DesignPanel from "./components/DesignPanel";
 import "./globals.css";
-
-const DataRequestModal = dynamic(() => import("./components/DataRequestModal"), { ssr: false });
 
 const NAV_LINKS = [
   { label: "Key Metrics", href: "#metrics" },
@@ -19,7 +16,6 @@ const NAV_LINKS = [
 
 export default function ReportPage() {
   const [scrolled, setScrolled] = useState(false);
-  const [dataModalOpen, setDataModalOpen] = useState(false);
 
   useEffect(() => {
     function onScroll() {
@@ -36,9 +32,10 @@ export default function ReportPage() {
 
   return (
     <>
+      {/* Full-screen animated canvas */}
       <AnimatedBackground />
 
-      {/* Sticky condensed header */}
+      {/* Sticky condensed header — appears after scroll */}
       <div className={`sticky-header ${scrolled ? "sticky-header-visible" : ""}`}>
         <div className="sticky-header-inner">
           <div className="sticky-logo">
@@ -52,23 +49,16 @@ export default function ReportPage() {
               </a>
             ))}
           </nav>
-          <div className="sticky-actions">
-            <button
-              className="sticky-data-btn"
-              onClick={() => setDataModalOpen(true)}
-            >
-              Request data
-            </button>
-            <button className="sticky-ask-btn" onClick={handleAskData}>
-              Ask the data
-            </button>
-          </div>
+          <button className="sticky-ask-btn" onClick={handleAskData}>
+            Ask the data
+          </button>
         </div>
       </div>
 
       {/* Report content */}
       <div className="content-layer">
 
+        {/* Hero */}
         <div className="hero">
           <div className="hero-badge">Louisiana Startup Report 2026</div>
           <h1>
@@ -83,12 +73,10 @@ export default function ReportPage() {
             <button className="btn-primary" onClick={handleAskData}>
               Ask the data
             </button>
-            <button className="btn-secondary" onClick={() => setDataModalOpen(true)}>
-              Request raw data
-            </button>
           </div>
         </div>
 
+        {/* Key Metrics */}
         <section id="metrics" className="report-section">
           <h2 className="section-label">Key Metrics — 2025 GNO</h2>
           <h3 className="section-title">Greater New Orleans startup cohort</h3>
@@ -117,6 +105,7 @@ export default function ReportPage() {
           </div>
         </section>
 
+        {/* Funding section placeholder */}
         <section id="funding" className="report-section">
           <h2 className="section-label">Funding</h2>
           <h3 className="section-title">How GNO startups are raising capital</h3>
@@ -127,6 +116,7 @@ export default function ReportPage() {
           </p>
         </section>
 
+        {/* Industries placeholder */}
         <section id="industries" className="report-section">
           <h2 className="section-label">Industries</h2>
           <h3 className="section-title">Who's building in Greater New Orleans</h3>
@@ -137,6 +127,7 @@ export default function ReportPage() {
           </p>
         </section>
 
+        {/* AI Adoption placeholder */}
         <section id="ai" className="report-section">
           <h2 className="section-label">AI Adoption</h2>
           <h3 className="section-title">Artificial intelligence in the startup cohort</h3>
@@ -147,6 +138,7 @@ export default function ReportPage() {
           </p>
         </section>
 
+        {/* Workforce placeholder */}
         <section id="workforce" className="report-section">
           <h2 className="section-label">Workforce</h2>
           <h3 className="section-title">Hiring trends and team composition</h3>
@@ -159,12 +151,11 @@ export default function ReportPage() {
 
       </div>
 
-      <ChatDrawer onRequestData={() => setDataModalOpen(true)} />
-      <DesignPanel />
+      {/* Chat drawer anchored to bottom */}
+      <ChatDrawer />
 
-      {dataModalOpen && (
-        <DataRequestModal onClose={() => setDataModalOpen(false)} />
-      )}
+      {/* Design adjustment panel — Ctrl+Shift+D */}
+      <DesignPanel />
     </>
   );
 }

@@ -129,6 +129,8 @@ export default function ChatDrawer({ onRequestData }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState("");
+  const [streamingContent, setStreamingContent] = useState("");
   const [startersVisible, setStartersVisible] = useState(true);
   const [queryCount, setQueryCount] = useState(0);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
@@ -168,7 +170,7 @@ export default function ChatDrawer({ onRequestData }) {
     setQueryCount(c => c + 1);
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 50000); // 50s client timeout
+    const timeout = setTimeout(() => controller.abort(), 55000);
 
     try {
       const res = await fetch("/api/chat", {
@@ -178,8 +180,42 @@ export default function ChatDrawer({ onRequestData }) {
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      const data = await res.json();
-      setMessages([...newMessages, { role: "assistant", content: data.response }]);
+
+      // Read SSE stream
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          let event;
+          try { event = JSON.parse(line.slice(6)); } catch { continue; }
+
+          if (event.type === "status") {
+            setLoadingStatus(event.message);
+          } else if (event.type === "delta") {
+            accumulated += event.content;
+            setStreamingContent(accumulated);
+          } else if (event.type === "done") {
+            // Streaming complete — commit to messages
+            setMessages([...newMessages, { role: "assistant", content: accumulated }]);
+            setStreamingContent("");
+            setLoadingStatus("");
+          } else if (event.type === "done_text") {
+            // Non-streaming fallback (iteration limit, error)
+            setMessages([...newMessages, { role: "assistant", content: event.content }]);
+            setStreamingContent("");
+            setLoadingStatus("");
+          }
+        }
+      }
     } catch (err) {
       clearTimeout(timeout);
       const isTimeout = err.name === "AbortError";
@@ -188,10 +224,12 @@ export default function ChatDrawer({ onRequestData }) {
         {
           role: "assistant",
           content: isTimeout
-            ? "That query took too long to process. Try narrowing it down — for example, ask about one industry at a time rather than a comparison."
-            : "Something went wrong connecting to the API. Check that the server is running and the API key is configured.",
+            ? "That query took too long. Try a more specific question — for example, ask about one industry at a time."
+            : "Something went wrong connecting to the API.",
         },
       ]);
+      setStreamingContent("");
+      setLoadingStatus("");
     } finally {
       setLoading(false);
       inputRef.current?.focus();
@@ -250,11 +288,24 @@ export default function ChatDrawer({ onRequestData }) {
                 <div key={i} className="msg msg-user">{msg.content}</div>
               )
             )}
-            {loading && (
+
+            {/* In-progress streaming message */}
+            {streamingContent && (
+              <AssistantMessage content={streamingContent} streaming />
+            )}
+
+            {/* Status / loading indicator */}
+            {loading && !streamingContent && (
               <div className="msg-loading">
-                <div className="dot" />
-                <div className="dot" />
-                <div className="dot" />
+                {loadingStatus ? (
+                  <span className="msg-loading-status">{loadingStatus}</span>
+                ) : (
+                  <>
+                    <div className="dot" />
+                    <div className="dot" />
+                    <div className="dot" />
+                  </>
+                )}
               </div>
             )}
             <div ref={messagesEndRef} />
