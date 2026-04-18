@@ -1087,6 +1087,95 @@ body {
   letter-spacing: 0.5px;
 }
 
+/* Terms gate — shown before first query */
+.chat-terms-gate {
+  padding: 28px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex: 1;
+  justify-content: center;
+}
+
+.chat-terms-title {
+  font-family: 'Aktiv Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--dark);
+}
+
+.chat-terms-text {
+  font-family: 'Aktiv Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-light);
+  line-height: 1.65;
+  margin: 0;
+}
+
+.chat-terms-accept {
+  align-self: flex-start;
+  background: var(--dark);
+  color: #c8dce8;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.chat-terms-accept:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Session limit wall */
+.chat-limit-wall {
+  padding: 28px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-limit-title {
+  font-family: 'Aktiv Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--dark);
+}
+
+.chat-limit-text {
+  font-family: 'Aktiv Grotesk', sans-serif;
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--text-light);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.chat-limit-cta {
+  align-self: flex-start;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.chat-limit-cta:hover {
+  background: var(--dark);
+}
+
 /* ============================================
    DESIGN ADJUSTMENT PANEL
    ============================================ */

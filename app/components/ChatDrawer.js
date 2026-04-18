@@ -122,7 +122,8 @@ function AssistantMessage({ content }) {
 // ============================================================
 // Main drawer component
 // ============================================================
-const DATA_REQUEST_NUDGE_AFTER = 8; // user queries before showing nudge
+const DATA_REQUEST_NUDGE_AFTER = 15; // show nudge after this many queries
+const QUERY_HARD_LIMIT = 25;         // lock input and surface data request
 
 export default function ChatDrawer({ onRequestData }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -134,6 +135,7 @@ export default function ChatDrawer({ onRequestData }) {
   const [startersVisible, setStartersVisible] = useState(true);
   const [queryCount, setQueryCount] = useState(0);
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const drawerRef = useRef(null);
@@ -145,10 +147,10 @@ export default function ChatDrawer({ onRequestData }) {
   }, [messages, loading, isOpen]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && termsAccepted) {
       setTimeout(() => inputRef.current?.focus(), 300);
     }
-  }, [isOpen]);
+  }, [isOpen, termsAccepted]);
 
   useEffect(() => {
     function handleKey(e) {
@@ -158,8 +160,10 @@ export default function ChatDrawer({ onRequestData }) {
     return () => window.removeEventListener("keydown", handleKey);
   }, [isOpen]);
 
+  const atLimit = queryCount >= QUERY_HARD_LIMIT;
+
   async function sendMessage(text) {
-    if (!text.trim() || loading) return;
+    if (!text.trim() || loading || atLimit) return;
 
     const userMessage = { role: "user", content: text.trim() };
     const newMessages = [...messages, userMessage];
@@ -181,7 +185,6 @@ export default function ChatDrawer({ onRequestData }) {
       });
       clearTimeout(timeout);
 
-      // Read SSE stream
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let accumulated = "";
@@ -204,12 +207,10 @@ export default function ChatDrawer({ onRequestData }) {
             accumulated += event.content;
             setStreamingContent(accumulated);
           } else if (event.type === "done") {
-            // Streaming complete — commit to messages
             setMessages([...newMessages, { role: "assistant", content: accumulated }]);
             setStreamingContent("");
             setLoadingStatus("");
           } else if (event.type === "done_text") {
-            // Non-streaming fallback (iteration limit, error)
             setMessages([...newMessages, { role: "assistant", content: event.content }]);
             setStreamingContent("");
             setLoadingStatus("");
@@ -232,7 +233,7 @@ export default function ChatDrawer({ onRequestData }) {
       setLoadingStatus("");
     } finally {
       setLoading(false);
-      inputRef.current?.focus();
+      if (!atLimit) inputRef.current?.focus();
     }
   }
 
@@ -264,123 +265,167 @@ export default function ChatDrawer({ onRequestData }) {
         </div>
 
         <div className="drawer-content">
-          {/* Initial starters — shown before any messages */}
-          {!hasMessages && startersVisible && (
-            <div className="starter-questions">
-              {STARTER_QUESTIONS.map((q, i) => (
-                <button
-                  key={i}
-                  className="starter-q"
-                  onClick={() => sendMessage(q)}
-                  disabled={loading}
-                >
-                  {q}
-                </button>
-              ))}
+
+          {/* Terms gate — shown on first open until accepted */}
+          {!termsAccepted && (
+            <div className="chat-terms-gate">
+              <div className="chat-terms-title">Before you ask the data</div>
+              <p className="chat-terms-text">
+                This assistant analyzes self-reported survey responses from 112
+                GNO startups. Findings based on fewer than 10 respondents are
+                suppressed to protect respondent privacy. AI-generated analysis
+                can contain errors — verify important figures with the source data.
+              </p>
+              <button
+                className="chat-terms-accept"
+                onClick={() => setTermsAccepted(true)}
+              >
+                Got it — start asking
+              </button>
             </div>
           )}
 
-          <div className="messages-area">
-            {messages.map((msg, i) =>
-              msg.role === "assistant" ? (
-                <AssistantMessage key={i} content={msg.content} />
-              ) : (
-                <div key={i} className="msg msg-user">{msg.content}</div>
-              )
-            )}
-
-            {/* In-progress streaming message */}
-            {streamingContent && (
-              <AssistantMessage content={streamingContent} streaming />
-            )}
-
-            {/* Status / loading indicator */}
-            {loading && !streamingContent && (
-              <div className="msg-loading">
-                {loadingStatus ? (
-                  <span className="msg-loading-status">{loadingStatus}</span>
-                ) : (
-                  <>
-                    <div className="dot" />
-                    <div className="dot" />
-                    <div className="dot" />
-                  </>
-                )}
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Data access nudge — appears after heavy use */}
-          {!nudgeDismissed && queryCount >= DATA_REQUEST_NUDGE_AFTER && onRequestData && (
-            <div className="data-nudge">
-              <div className="data-nudge-text">
-                <strong>Need deeper access?</strong> Request the raw dataset directly from Tulane for your own analysis.
-              </div>
-              <div className="data-nudge-actions">
-                <button
-                  className="data-nudge-cta"
-                  onClick={() => { onRequestData(); setNudgeDismissed(true); }}
-                >
-                  Request access
-                </button>
-                <button
-                  className="data-nudge-dismiss"
-                  onClick={() => setNudgeDismissed(true)}
-                  aria-label="Dismiss"
-                >
-                  ✕
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Mid-conversation suggestions shelf — sits above input */}
-          {hasMessages && startersVisible && (
-            <div className="suggestions-shelf">
-              {STARTER_QUESTIONS.map((q, i) => (
-                <button
-                  key={i}
-                  className="suggestion-chip"
-                  onClick={() => { sendMessage(q); setStartersVisible(false); }}
-                  disabled={loading}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <div className="input-area">
-            <div className="chat-input-wrap">
-              <input
-                ref={inputRef}
-                className={`chat-input ${hasMessages ? "chat-input--has-suggest" : ""}`}
-                type="text"
-                placeholder="Ask about the startup ecosystem..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={loading}
-              />
-              {hasMessages && (
-                <button
-                  className={`starters-toggle-btn ${startersVisible ? "starters-toggle-btn--active" : ""}`}
-                  onClick={() => setStartersVisible(v => \!v)}
-                  title={startersVisible ? "Hide suggestions" : "Suggested questions"}
-                >
-                  Suggest
-                </button>
+          {/* Main content — only shown after terms accepted */}
+          {termsAccepted && (
+            <>
+              {/* Hard limit wall */}
+              {atLimit && (
+                <div className="chat-limit-wall">
+                  <div className="chat-limit-title">Session limit reached</div>
+                  <p className="chat-limit-text">
+                    You&rsquo;ve sent {queryCount} queries this session. For
+                    deeper analysis, request access to the full dataset from
+                    Tulane.
+                  </p>
+                  {onRequestData && (
+                    <button className="chat-limit-cta" onClick={onRequestData}>
+                      Request raw data access
+                    </button>
+                  )}
+                </div>
               )}
-            </div>
-            <button
-              className="chat-send"
-              onClick={() => sendMessage(input)}
-              disabled={loading || \!input.trim()}
-            >
-              {loading ? "Thinking..." : "Send"}
-            </button>
-          </div>
+
+              {/* Initial starters */}
+              {!hasMessages && startersVisible && !atLimit && (
+                <div className="starter-questions">
+                  {STARTER_QUESTIONS.map((q, i) => (
+                    <button
+                      key={i}
+                      className="starter-q"
+                      onClick={() => sendMessage(q)}
+                      disabled={loading}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="messages-area">
+                {messages.map((msg, i) =>
+                  msg.role === "assistant" ? (
+                    <AssistantMessage key={i} content={msg.content} />
+                  ) : (
+                    <div key={i} className="msg msg-user">{msg.content}</div>
+                  )
+                )}
+
+                {streamingContent && (
+                  <AssistantMessage content={streamingContent} streaming />
+                )}
+
+                {loading && !streamingContent && (
+                  <div className="msg-loading">
+                    {loadingStatus ? (
+                      <span className="msg-loading-status">{loadingStatus}</span>
+                    ) : (
+                      <>
+                        <div className="dot" />
+                        <div className="dot" />
+                        <div className="dot" />
+                      </>
+                    )}
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Data access nudge */}
+              {!nudgeDismissed && queryCount >= DATA_REQUEST_NUDGE_AFTER && !atLimit && onRequestData && (
+                <div className="data-nudge">
+                  <div className="data-nudge-text">
+                    <strong>Need deeper access?</strong> Request the raw dataset directly from Tulane for your own analysis.
+                  </div>
+                  <div className="data-nudge-actions">
+                    <button
+                      className="data-nudge-cta"
+                      onClick={() => { onRequestData(); setNudgeDismissed(true); }}
+                    >
+                      Request access
+                    </button>
+                    <button
+                      className="data-nudge-dismiss"
+                      onClick={() => setNudgeDismissed(true)}
+                      aria-label="Dismiss"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Mid-conversation suggestions shelf */}
+              {hasMessages && startersVisible && !atLimit && (
+                <div className="suggestions-shelf">
+                  {STARTER_QUESTIONS.map((q, i) => (
+                    <button
+                      key={i}
+                      className="suggestion-chip"
+                      onClick={() => { sendMessage(q); setStartersVisible(false); }}
+                      disabled={loading}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Input row */}
+              {!atLimit && (
+                <div className="input-area">
+                  <div className="chat-input-wrap">
+                    <input
+                      ref={inputRef}
+                      className={`chat-input ${hasMessages ? "chat-input--has-suggest" : ""}`}
+                      type="text"
+                      placeholder="Ask about the startup ecosystem..."
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      disabled={loading}
+                    />
+                    {hasMessages && (
+                      <button
+                        className={`starters-toggle-btn ${startersVisible ? "starters-toggle-btn--active" : ""}`}
+                        onClick={() => setStartersVisible(v => !v)}
+                        title={startersVisible ? "Hide suggestions" : "Suggested questions"}
+                      >
+                        Suggest
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    className="chat-send"
+                    onClick={() => sendMessage(input)}
+                    disabled={loading || !input.trim()}
+                  >
+                    {loading ? "Thinking..." : "Send"}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
           <div className="chat-footer">
             <span className="chat-footer-text">
               Tulane Lepage Center + LA.io · Monday + Partners

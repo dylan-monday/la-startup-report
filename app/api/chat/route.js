@@ -21,10 +21,13 @@ const TOOL_STATUS = {
 export async function POST(req) {
   const { messages } = await req.json();
 
-  const anthropicMessages = messages.map((m) => ({
-    role: m.role,
-    content: m.content,
-  }));
+  // Trim conversation history to control token cost.
+  // Keep the first user message (establishes context) + the last N turns.
+  const MAX_HISTORY_TURNS = 8; // 8 pairs = 16 messages max sent to API
+  const raw = messages.map((m) => ({ role: m.role, content: m.content }));
+  const anthropicMessages = raw.length > MAX_HISTORY_TURNS * 2 + 1
+    ? [raw[0], ...raw.slice(-(MAX_HISTORY_TURNS * 2))]
+    : raw;
 
   const encoder = new TextEncoder();
 
