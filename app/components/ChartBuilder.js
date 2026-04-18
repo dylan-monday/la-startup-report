@@ -491,12 +491,37 @@ const CHART_TYPES = [
   { key: "donut",   label: "Donut" },
 ];
 
+// Build a TSV string from chart data for clipboard export
+function buildTSV(config) {
+  const title = config?.title || "Chart Data";
+  const rows = [title, ""];
+
+  if (config?.type === "stacked" && config.data?.[0]?.segments) {
+    const headers = config.data[0].segments.map(s => s.label);
+    rows.push(["Category", ...headers].join("\t"));
+    config.data.forEach(d => {
+      rows.push([d.label, ...d.segments.map(s => s.value)].join("\t"));
+    });
+  } else if (config?.data) {
+    rows.push("Category\tValue");
+    config.data.forEach(d => {
+      rows.push(`${d.label}\t${d.value}`);
+    });
+  }
+
+  rows.push("");
+  rows.push(`# ${ATTRIBUTION.source}`);
+  rows.push(`# ${ATTRIBUTION.text}`);
+  return rows.join("\n");
+}
+
 export default function ChartBuilder({ config, onClose }) {
   const canvasRef = useRef(null);
   const [palette, setPalette] = useState(config?.palette || DEFAULT_PALETTE);
   const [chartType, setChartType] = useState(config?.type || "bar");
   const [darkMode, setDarkMode] = useState(false);
   const [rendering, setRendering] = useState(false);
+  const [dataCopied, setDataCopied] = useState(false);
 
   const paletteOptions = getPaletteOptions();
 
@@ -541,6 +566,23 @@ export default function ChartBuilder({ config, onClose }) {
     link.download = `la-startup-report-${title}-${palette}${mode}.png`;
     link.href = canvasRef.current.toDataURL("image/png");
     link.click();
+  }
+
+  async function copyData() {
+    const tsv = buildTSV(config);
+    try {
+      await navigator.clipboard.writeText(tsv);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = tsv;
+      ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setDataCopied(true);
+    setTimeout(() => setDataCopied(false), 1800);
   }
 
   return (
@@ -605,6 +647,10 @@ export default function ChartBuilder({ config, onClose }) {
                 <path d="M12 8.5A5.5 5.5 0 0 1 5.5 2a5.5 5.5 0 1 0 6.5 6.5z" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             )}
+          </button>
+
+          <button className="chart-copy-data-btn" onClick={copyData} disabled={rendering}>
+            {dataCopied ? "Copied" : "Copy data"}
           </button>
 
           <button className="chart-download-btn" onClick={downloadPNG} disabled={rendering}>

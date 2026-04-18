@@ -1596,6 +1596,31 @@ body {
   flex-shrink: 0;
 }
 
+.chart-copy-data-btn {
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 7px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #8aabb8;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.chart-copy-data-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chart-copy-data-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .chart-download-btn {
   padding: 7px 16px;
   background: var(--dark);

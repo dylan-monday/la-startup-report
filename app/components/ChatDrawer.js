@@ -45,16 +45,55 @@ function parseChartConfig(text) {
 // ============================================================
 const COPY_ATTRIBUTION = "\n\nSource: Louisiana Startup Report 2026, Greater New Orleans cohort (n=112). Albert Lepage Center for Entrepreneurship & Innovation, Tulane University · LA.io · mondayandpartners.com";
 
+// Strip markdown syntax for clean plain text
+function markdownToPlainText(md) {
+  return md
+    .replace(/\*\*(.+?)\*\*/g, "$1")        // bold
+    .replace(/\*(.+?)\*/g, "$1")            // italic
+    .replace(/^#{1,6}\s+/gm, "")            // headers
+    .replace(/^[-*+]\s+/gm, "• ")           // unordered bullets
+    .replace(/`([^`]+)`/g, "$1")            // inline code
+    .trim();
+}
+
+// Convert markdown to HTML for rich-text clipboard targets (Word, Gmail, Slides)
+function markdownToHTML(md) {
+  let h = md
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  h = h
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/^#{1,6}\s+(.+)$/gm, "<strong>$1</strong>")
+    .replace(/^[-*+]\s+(.+)$/gm, "&bull;&nbsp;$1")
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\n\n/g, "<br><br>")
+    .replace(/\n/g, "<br>");
+  return `<div style="font-family:-apple-system,sans-serif;font-size:14px;line-height:1.7">${h}</div>`;
+}
+
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    const textWithAttribution = text + COPY_ATTRIBUTION;
+    const plain = markdownToPlainText(text) + COPY_ATTRIBUTION;
+    const htmlAttr = COPY_ATTRIBUTION.replace(/\n/g, "<br>");
+    const html = markdownToHTML(text) + `<p style="font-size:11px;color:#888;">${htmlAttr.trim()}</p>`;
     try {
-      await navigator.clipboard.writeText(textWithAttribution);
+      if (window.ClipboardItem) {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            "text/plain": new Blob([plain], { type: "text/plain" }),
+            "text/html":  new Blob([html],  { type: "text/html" }),
+          }),
+        ]);
+      } else {
+        await navigator.clipboard.writeText(plain);
+      }
     } catch {
       const ta = document.createElement("textarea");
-      ta.value = textWithAttribution;
+      ta.value = plain;
       ta.style.cssText = "position:fixed;opacity:0;pointer-events:none";
       document.body.appendChild(ta);
       ta.select();
