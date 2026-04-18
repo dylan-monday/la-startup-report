@@ -271,8 +271,8 @@ function renderHBar(ctx, palette, data, chartArea) {
     ctx.roundRect(barLeft, y, barRight - barLeft, LAYOUT.hbar.barHeight, LAYOUT.bar.barRadius);
     ctx.fill();
 
-    // Bar fill
-    ctx.fillStyle = d.color || palette.primary;
+    // Bar fill — alternate primary/mid so paired rows (e.g. 2020 vs 2025) read as distinct
+    ctx.fillStyle = d.color || (i % 2 === 0 ? palette.primary : palette.mid);
     ctx.beginPath();
     ctx.roundRect(barLeft, y, Math.max(barW, 4), LAYOUT.hbar.barHeight, LAYOUT.bar.barRadius);
     ctx.fill();
