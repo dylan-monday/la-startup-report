@@ -309,4 +309,16 @@ Vercel environment variables needed:
 
 5. **Statewide expansion.** The 2026 report adds 7 new regions. The data layer in `lib/data-tools.js` is designed to be region-agnostic — filters can be applied to any field including a `region` field once the statewide dataset is ready. The system prompt will need a region-awareness section.
 
-6. **Auth.** Currently no authentication. The terms gate + query limit is the only friction. For the statewide report or for the data request workflow, consider adding a lightweight email-based auth (magic link) to prevent abuse and enable usage tracking.
+6. **Cross-cut starter questions.** The data is row-level, so any field can be filtered against any other. Several high-value cross-cuts are confirmed to work at sufficient sample size and should be added as featured starter questions or a "deeper analysis" shelf in the UI:
+   - Revenue 2024 × founder gender (n=82) — female founders cluster at $0-$50K (56%); the entire upper revenue tail ($7.5M+) is male-founded. Strong finding.
+   - FT employees × industry (n=68) — Software and Healthcare show widest distributions; most industries cluster at 1-3 FT.
+   - AI impact × industry (n=93) — shows which sectors are actually integrating vs. talking about it.
+   - `plan_to_raise` × revenue bracket — are growth-seeking companies larger, or are smaller companies the ones seeking capital?
+   - `has_exit_strategy` × funding rounds — are venture-backed companies planning exits, or is that disconnected in this cohort?
+   - Revenue trajectory (2020-2024) × workspace type (n=77 with both years) — do leased commercial companies grow differently than home-based?
+   - `plan_to_raise` × founder gender — 46% of male founders plan to raise vs. 18% of female founders. Significant disparity.
+   All of these are queryable via existing tools right now. The system prompt and starter questions just need to surface them.
+
+7. **"High growth" proxy.** The published report's 40/60 high-growth/small-business split is not derivable from the dataset (it was editorial, not a survey field). For queries that reference "high growth companies," the system prompt should be updated to suggest available proxies: `plan_to_raise = Yes`, `funding_rounds` is populated, `has_exit_strategy = Yes`, or revenue trajectory across 2020-2024. Currently Claude has no instruction on how to handle this.
+
+8. **Auth.** Currently no authentication. The terms gate + query limit is the only friction. For the statewide report or for the data request workflow, consider adding a lightweight email-based auth (magic link) to prevent abuse and enable usage tracking.
