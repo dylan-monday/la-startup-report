@@ -683,7 +683,7 @@ export default function AdminPage() {
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: "11px", color: "var(--text-light)", marginTop: 8,
                 }}>
-                  Live sessions · {days}d window
+                  {days}d window
                 </div>
               </Card>
 
@@ -735,7 +735,7 @@ export default function AdminPage() {
                 </div>
               </Card>
 
-              {/* Cost — live only, no seed contamination */}
+              {/* Cost */}
               <Card style={{ flex: 1 }}>
                 <div style={{
                   fontFamily: "'JetBrains Mono', monospace",
@@ -756,7 +756,7 @@ export default function AdminPage() {
                   fontFamily: "'JetBrains Mono', monospace",
                   fontSize: "11px", color: "var(--text-light)", marginTop: 8,
                 }}>
-                  {fmtCost(totals.chats ? totals.cost / totals.chats : 0)} per session · live only
+                  {fmtCost(totals.chats ? totals.cost / totals.chats : 0)} per session
                 </div>
               </Card>
             </div>
@@ -770,7 +770,7 @@ export default function AdminPage() {
               marginBottom: 16,
               paddingLeft: 2,
             }}>
-              Charts include demo seed data for visualization. Stat cards above reflect live sessions only.
+              30-day rolling window · includes all sessions
             </div>
 
             {/* ── Row 2: conversations + tool usage ─────────────────────── */}
