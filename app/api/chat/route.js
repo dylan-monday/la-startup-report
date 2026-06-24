@@ -53,7 +53,7 @@ export async function POST(req) {
         for (let i = 0; i < MAX_ITERATIONS; i++) {
           // Non-streaming call for tool-use turns — we need the full message
           const response = await anthropic.messages.create({
-            model: "claude-sonnet-4-20250514",
+            model: "claude-sonnet-4-6",
             max_tokens: 2048,
             system: systemPrompt,
             tools: toolDefinitions,

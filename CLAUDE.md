@@ -24,7 +24,7 @@ An interactive data assistant built on top of the 2025 Greater New Orleans Start
 | Framework | Next.js 15 (App Router) |
 | Language | JavaScript (no TypeScript) |
 | Hosting | Vercel Pro |
-| AI | Anthropic Claude API (claude-sonnet-4-20250514) |
+| AI | Anthropic Claude API (claude-sonnet-4-6) |
 | Streaming | Server-Sent Events via ReadableStream |
 | Charts | Custom Canvas API renderer (no chart library) |
 | Styling | Global CSS (app/globals.css) — no Tailwind, no CSS modules |
@@ -149,7 +149,7 @@ The chatbot calls the Anthropic API (console.anthropic.com) directly. This is bi
 
 - **Input tokens dominate.** The system prompt is ~1,400 tokens. Tool definitions add ~500 tokens. Each conversation turn sends the full (trimmed) history. At MAX_HISTORY_TURNS=8, a long session sends up to 16 messages plus the system prompt and tools on every call.
 - **Tool calls multiply cost.** Each tool call is a round-trip to the API. A complex query might make 2-3 tool calls before responding. Each call sends the full context.
-- **Model:** `claude-sonnet-4-20250514`. Sonnet is the right cost/quality balance for this use case. Do not upgrade to Opus without a cost analysis.
+- **Model:** `claude-sonnet-4-6`. Sonnet is the right cost/quality balance for this use case. Do not upgrade to Opus without a cost analysis. (Note: was previously pinned to the dated snapshot `claude-sonnet-4-20250514`, which Anthropic retired on 2026-06-15 — a retired snapshot returns a 404 and breaks the chatbot. Prefer the rolling `claude-sonnet-4-6` alias over a dated snapshot to avoid this.)
 - **max_tokens: 2048** per response. This is appropriate and should not be raised without reason.
 
 ### Cost controls already in place
