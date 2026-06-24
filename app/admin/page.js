@@ -270,7 +270,10 @@ function PasswordGate({ onAuth }) {
 
   function submit(e) {
     e.preventDefault();
-    const correct = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "louisiana";
+    // Live password is set via NEXT_PUBLIC_ADMIN_PASSWORD in Vercel (prototype gate
+    // only — see ARCHITECTURE.md §10; this is not real auth). The fallback below is a
+    // local-dev placeholder, NOT the live password.
+    const correct = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "localdev-only";
     if (pwd === correct) {
       sessionStorage.setItem("la-admin-auth", "ok");
       onAuth();

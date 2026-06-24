@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { toolDefinitions, executeTool } from "../../../lib/data-tools";
 import { systemPrompt } from "../../../lib/system-prompt";
 import { trackSession } from "../../../lib/analytics";
+import { MODEL } from "../../../lib/model";
 
 export const maxDuration = 60;
 
@@ -53,7 +54,7 @@ export async function POST(req) {
         for (let i = 0; i < MAX_ITERATIONS; i++) {
           // Non-streaming call for tool-use turns — we need the full message
           const response = await anthropic.messages.create({
-            model: "claude-sonnet-4-6",
+            model: MODEL,
             max_tokens: 2048,
             system: systemPrompt,
             tools: toolDefinitions,
@@ -139,6 +140,8 @@ export async function POST(req) {
         let message = "Something went wrong. Please try again.";
         if (status === 401) {
           message = "API authentication failed. Check that ANTHROPIC_API_KEY is set correctly in Vercel environment variables.";
+        } else if (status === 404) {
+          message = "The AI model is unavailable — it may have been retired. Update MODEL in lib/model.js and redeploy. (Check /api/health.)";
         } else if (status === 402 || status === 529) {
           message = "API credits exhausted. Add credits at console.anthropic.com and redeploy.";
         } else if (status === 429) {
